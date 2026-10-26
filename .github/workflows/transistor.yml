@@ -2,8 +2,9 @@
 # chip_top), on demand, apart from CI. The GDS of main's latest successful CI
 # run, extracted to its transistors with Magic; the test program -- power-up,
 # RESET, LD A,5Ah / LD (8000h),A / OUT (42h),A / IN A,(43h) / HALT at 4 MHz,
-# 15 ns edges, 100 pF on every pin -- in ngspice at each corner, in 6
-# windows, one job each (a GitHub job stops at 6 hours): every window starts
+# 15 ns edges, 100 pF on every pin -- in ngspice at each corner, in 12
+# windows of about 1.1 us, one job each (a GitHub job stops at 6 hours, and on
+# this machine one 2.4 us window ran past 3.9 hours): every window starts
 # from the node voltages the one before ended with. Then the pins against the
 # RTL, every AC parameter of the Z8400's datasheet on every cycle that has it,
 # and the figures, as the artifact transistor-results: spice/chip/gf180mcu/
@@ -105,7 +106,7 @@ jobs:
             work/ref.txt
           retention-days: 14
   window1:
-    name: window 1 of 6 (${{ matrix.corner }})
+    name: window 1 of 12 (${{ matrix.corner }})
     needs: netlist
     runs-on: ubuntu-24.04
     timeout-minutes: 355
@@ -136,10 +137,10 @@ jobs:
         with:
           name: transistor-netlist
           path: work
-      - name: Simulate window 1 of 6
+      - name: Simulate window 1 of 12
         run: |
           python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
-            --steps simulate --segment 1/6
+            --steps simulate --segment 1/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
         with:
@@ -147,7 +148,7 @@ jobs:
           path: work/${{ matrix.corner }}/seg
           retention-days: 14
   window2:
-    name: window 2 of 6 (${{ matrix.corner }})
+    name: window 2 of 12 (${{ matrix.corner }})
     needs: window1
     runs-on: ubuntu-24.04
     timeout-minutes: 355
@@ -183,10 +184,10 @@ jobs:
         with:
           name: transistor-${{ matrix.corner }}-1
           path: work/${{ matrix.corner }}/seg
-      - name: Simulate window 2 of 6
+      - name: Simulate window 2 of 12
         run: |
           python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
-            --steps simulate --segment 2/6
+            --steps simulate --segment 2/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
         with:
@@ -194,7 +195,7 @@ jobs:
           path: work/${{ matrix.corner }}/seg
           retention-days: 14
   window3:
-    name: window 3 of 6 (${{ matrix.corner }})
+    name: window 3 of 12 (${{ matrix.corner }})
     needs: window2
     runs-on: ubuntu-24.04
     timeout-minutes: 355
@@ -230,10 +231,10 @@ jobs:
         with:
           name: transistor-${{ matrix.corner }}-2
           path: work/${{ matrix.corner }}/seg
-      - name: Simulate window 3 of 6
+      - name: Simulate window 3 of 12
         run: |
           python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
-            --steps simulate --segment 3/6
+            --steps simulate --segment 3/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
         with:
@@ -241,7 +242,7 @@ jobs:
           path: work/${{ matrix.corner }}/seg
           retention-days: 14
   window4:
-    name: window 4 of 6 (${{ matrix.corner }})
+    name: window 4 of 12 (${{ matrix.corner }})
     needs: window3
     runs-on: ubuntu-24.04
     timeout-minutes: 355
@@ -277,10 +278,10 @@ jobs:
         with:
           name: transistor-${{ matrix.corner }}-3
           path: work/${{ matrix.corner }}/seg
-      - name: Simulate window 4 of 6
+      - name: Simulate window 4 of 12
         run: |
           python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
-            --steps simulate --segment 4/6
+            --steps simulate --segment 4/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
         with:
@@ -288,7 +289,7 @@ jobs:
           path: work/${{ matrix.corner }}/seg
           retention-days: 14
   window5:
-    name: window 5 of 6 (${{ matrix.corner }})
+    name: window 5 of 12 (${{ matrix.corner }})
     needs: window4
     runs-on: ubuntu-24.04
     timeout-minutes: 355
@@ -324,10 +325,10 @@ jobs:
         with:
           name: transistor-${{ matrix.corner }}-4
           path: work/${{ matrix.corner }}/seg
-      - name: Simulate window 5 of 6
+      - name: Simulate window 5 of 12
         run: |
           python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
-            --steps simulate --segment 5/6
+            --steps simulate --segment 5/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
         with:
@@ -335,7 +336,7 @@ jobs:
           path: work/${{ matrix.corner }}/seg
           retention-days: 14
   window6:
-    name: window 6 of 6 (${{ matrix.corner }})
+    name: window 6 of 12 (${{ matrix.corner }})
     needs: window5
     runs-on: ubuntu-24.04
     timeout-minutes: 355
@@ -371,19 +372,301 @@ jobs:
         with:
           name: transistor-${{ matrix.corner }}-5
           path: work/${{ matrix.corner }}/seg
-      - name: Simulate window 6 of 6
+      - name: Simulate window 6 of 12
         run: |
           python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
-            --steps simulate --segment 6/6
+            --steps simulate --segment 6/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
         with:
           name: transistor-${{ matrix.corner }}-6
           path: work/${{ matrix.corner }}/seg
           retention-days: 14
+  window7:
+    name: window 7 of 12 (${{ matrix.corner }})
+    needs: window6
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        corner: ${{ fromJSON(inputs.corners) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-substituters = https://nix-cache.fossi-foundation.org
+            extra-trusted-public-keys = nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=
+            extra-experimental-features = nix-command flakes
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: The PDK (cached)
+        uses: actions/cache@v4
+        with:
+          path: gf180mcu
+          key: ciel-gf180mcu-${{ env.PDK_COMMIT }}
+      - name: Fetch the PDK (LibreLane's ciel)
+        run: |
+          [ -d gf180mcu/$PDK ] ||
+            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The netlist and the RTL's reference
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-netlist
+          path: work
+      - name: Windows 1-6 at ${{ matrix.corner }}
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-${{ matrix.corner }}-6
+          path: work/${{ matrix.corner }}/seg
+      - name: Simulate window 7 of 12
+        run: |
+          python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
+            --steps simulate --segment 7/12
+          tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: transistor-${{ matrix.corner }}-7
+          path: work/${{ matrix.corner }}/seg
+          retention-days: 14
+  window8:
+    name: window 8 of 12 (${{ matrix.corner }})
+    needs: window7
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        corner: ${{ fromJSON(inputs.corners) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-substituters = https://nix-cache.fossi-foundation.org
+            extra-trusted-public-keys = nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=
+            extra-experimental-features = nix-command flakes
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: The PDK (cached)
+        uses: actions/cache@v4
+        with:
+          path: gf180mcu
+          key: ciel-gf180mcu-${{ env.PDK_COMMIT }}
+      - name: Fetch the PDK (LibreLane's ciel)
+        run: |
+          [ -d gf180mcu/$PDK ] ||
+            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The netlist and the RTL's reference
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-netlist
+          path: work
+      - name: Windows 1-7 at ${{ matrix.corner }}
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-${{ matrix.corner }}-7
+          path: work/${{ matrix.corner }}/seg
+      - name: Simulate window 8 of 12
+        run: |
+          python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
+            --steps simulate --segment 8/12
+          tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: transistor-${{ matrix.corner }}-8
+          path: work/${{ matrix.corner }}/seg
+          retention-days: 14
+  window9:
+    name: window 9 of 12 (${{ matrix.corner }})
+    needs: window8
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        corner: ${{ fromJSON(inputs.corners) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-substituters = https://nix-cache.fossi-foundation.org
+            extra-trusted-public-keys = nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=
+            extra-experimental-features = nix-command flakes
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: The PDK (cached)
+        uses: actions/cache@v4
+        with:
+          path: gf180mcu
+          key: ciel-gf180mcu-${{ env.PDK_COMMIT }}
+      - name: Fetch the PDK (LibreLane's ciel)
+        run: |
+          [ -d gf180mcu/$PDK ] ||
+            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The netlist and the RTL's reference
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-netlist
+          path: work
+      - name: Windows 1-8 at ${{ matrix.corner }}
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-${{ matrix.corner }}-8
+          path: work/${{ matrix.corner }}/seg
+      - name: Simulate window 9 of 12
+        run: |
+          python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
+            --steps simulate --segment 9/12
+          tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: transistor-${{ matrix.corner }}-9
+          path: work/${{ matrix.corner }}/seg
+          retention-days: 14
+  window10:
+    name: window 10 of 12 (${{ matrix.corner }})
+    needs: window9
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        corner: ${{ fromJSON(inputs.corners) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-substituters = https://nix-cache.fossi-foundation.org
+            extra-trusted-public-keys = nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=
+            extra-experimental-features = nix-command flakes
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: The PDK (cached)
+        uses: actions/cache@v4
+        with:
+          path: gf180mcu
+          key: ciel-gf180mcu-${{ env.PDK_COMMIT }}
+      - name: Fetch the PDK (LibreLane's ciel)
+        run: |
+          [ -d gf180mcu/$PDK ] ||
+            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The netlist and the RTL's reference
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-netlist
+          path: work
+      - name: Windows 1-9 at ${{ matrix.corner }}
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-${{ matrix.corner }}-9
+          path: work/${{ matrix.corner }}/seg
+      - name: Simulate window 10 of 12
+        run: |
+          python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
+            --steps simulate --segment 10/12
+          tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: transistor-${{ matrix.corner }}-10
+          path: work/${{ matrix.corner }}/seg
+          retention-days: 14
+  window11:
+    name: window 11 of 12 (${{ matrix.corner }})
+    needs: window10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        corner: ${{ fromJSON(inputs.corners) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-substituters = https://nix-cache.fossi-foundation.org
+            extra-trusted-public-keys = nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=
+            extra-experimental-features = nix-command flakes
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: The PDK (cached)
+        uses: actions/cache@v4
+        with:
+          path: gf180mcu
+          key: ciel-gf180mcu-${{ env.PDK_COMMIT }}
+      - name: Fetch the PDK (LibreLane's ciel)
+        run: |
+          [ -d gf180mcu/$PDK ] ||
+            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The netlist and the RTL's reference
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-netlist
+          path: work
+      - name: Windows 1-10 at ${{ matrix.corner }}
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-${{ matrix.corner }}-10
+          path: work/${{ matrix.corner }}/seg
+      - name: Simulate window 11 of 12
+        run: |
+          python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
+            --steps simulate --segment 11/12
+          tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: transistor-${{ matrix.corner }}-11
+          path: work/${{ matrix.corner }}/seg
+          retention-days: 14
+  window12:
+    name: window 12 of 12 (${{ matrix.corner }})
+    needs: window11
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        corner: ${{ fromJSON(inputs.corners) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-substituters = https://nix-cache.fossi-foundation.org
+            extra-trusted-public-keys = nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=
+            extra-experimental-features = nix-command flakes
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: The PDK (cached)
+        uses: actions/cache@v4
+        with:
+          path: gf180mcu
+          key: ciel-gf180mcu-${{ env.PDK_COMMIT }}
+      - name: Fetch the PDK (LibreLane's ciel)
+        run: |
+          [ -d gf180mcu/$PDK ] ||
+            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The netlist and the RTL's reference
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-netlist
+          path: work
+      - name: Windows 1-11 at ${{ matrix.corner }}
+        uses: actions/download-artifact@v8
+        with:
+          name: transistor-${{ matrix.corner }}-11
+          path: work/${{ matrix.corner }}/seg
+      - name: Simulate window 12 of 12
+        run: |
+          python3 spice/chip.py ci --work work --corner ${{ matrix.corner }} --threads 4 \
+            --steps simulate --segment 12/12
+          tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
+      - uses: actions/upload-artifact@v7
+        with:
+          name: transistor-${{ matrix.corner }}-12
+          path: work/${{ matrix.corner }}/seg
+          retention-days: 14
   figures:
     name: the pins, the AC parameters and the figures
-    needs: [netlist, window6]
+    needs: [netlist, window12]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -396,15 +679,15 @@ jobs:
       - name: Every corner's windows
         uses: actions/download-artifact@v8
         with:
-          pattern: transistor-*-6
+          pattern: transistor-*-12
           path: windows
       - name: Stitch the windows and draw the figures, each corner
         run: |
           rc=0
-          for d in windows/transistor-*-6; do
+          for d in windows/transistor-*-12; do
             corner=$(basename "$d" | cut -d- -f2)
             mkdir -p work/$corner && cp -r "$d" work/$corner/seg
-            python3 spice/chip.py ci --work work --corner $corner --steps stitch,figures --segment 6/6 || rc=1
+            python3 spice/chip.py ci --work work --corner $corner --steps stitch,figures --segment 12/12 || rc=1
           done
           exit $rc
       - uses: actions/upload-artifact@v7

@@ -26,16 +26,47 @@ Nothing is allowed to fail.
 | NASCOM BASIC 4.7 and Tiny BASIC, canned scripts (`make rz80-basic`) | the scripts' expected output | Verilator | RTL | every push |
 | ZEXALL, 14 of its tests (`make rz80-zex ZEX=zexall ZEX_TESTS=...`) | real Z80s (the CRCs in the program) | Verilator | RTL | every push |
 | ZEXDOC and ZEXALL, all 67 tests each, in parts (`make rz80-zex`) | real Z80s | Verilator | RTL | main, nightly |
-| Sign-off: route / Magic / KLayout DRC, LVS, antenna, XOR, hold at every corner, setup at the typical one (`tests/rz80/scripts/summary.py`) | LibreLane | LibreLane | layout | every push |
-| The pins against the NMOS Z80's datasheet at 4 MHz, every corner (`make pin-timing`) | Zilog PS0178 (`timing/z8400_nmos.json`) | OpenSTA | layout | every push |
+| Sign-off: route / Magic / KLayout DRC, LVS, antenna, XOR, setup and hold at every corner, against the NMOS Z80's datasheet on the pins (`timing/chip_top_nmos.sdc`) and 50 ns in the core (`tests/rz80/scripts/summary.py`) | LibreLane | LibreLane | layout | every push |
+| The pins against the NMOS Z80's datasheet at 4, 6 and 8 MHz, each at its own clock, every corner: all 47 parameters, the pulse widths and pin-to-pin separations too (`make pin-timing`) | Zilog PS0178 (`timing/z8400_nmos.json`) | OpenSTA | layout | every push |
 | wafer.space precheck (`make precheck`) | wafer.space | LibreLane / KLayout / Magic | layout | every push |
 | The copies of RZ80's files (`make sync-check`) | `rz80/` | Python | - | every push |
+| The flow's SDC is what `timing/pin_timing.py --write-sdc` writes (`make sdc-check`) | the datasheet (`timing/`) | Python | - | every push |
+| Every power and ground pad as in the wafer.space template, in every slot (`make check-power-pads`) | the template at `d99f6e1`, which ws3 was made from | Python | - | every push |
+| The same against the template's current main (`make check-power-pads-upstream`) | wafer.space's template today | Python | - | main, nightly |
 | The whole chip at transistor level (`.github/workflows/transistor.yml`) | the RTL and the datasheet | ngspice | layout | on demand |
 
 Locally: `make sim`, `make sim-gl` (after the flow), `make sim-system`,
 `make sim-system-gl`, `make rz80-elab rz80-bus rz80-fuse rz80-xyflags
 rz80-traces rz80-sweep`, `make rz80-traces-gl` (after the flow), `make rz80-z80test Z80TEST=z80full`, `make rz80-basic`,
-`make rz80-zex ZEX=zexdoc`, `make pin-timing`, `make precheck`.
+`make rz80-zex ZEX=zexdoc`, `make pin-timing`, `make sdc-check`, `make precheck`.
+
+## Power and ground pads
+
+wafer.space bonds, packages and tests every chip of a slot alike, from the
+template's supply pads, so `scripts/check_power_pads.py` holds every one of
+them to the template's, in every slot ws3 carries
+(`librelane/slots/slot_*.yaml`): each `dvss_pads` / `dvdd_pads` /
+`vss_pads` / `vdd_pads` instance (whatever generate blocks of supply cells
+`chip_top.sv` has) must sit on the same side at the same position of that
+side's pad order, and each side must hold as many pads (a pad's place along
+its side follows from both); `src/slot_defines.svh` must give each slot the
+same number of each; `src/chip_top.sv` must build them from the same cells
+for each pad library, with the same generate blocks, instance names and
+attributes, and connect every pin of theirs to the same supply net, with the
+same supply ports and the same I/O-to-core short; `librelane/config.yaml`
+must keep the power nets and the core ring that connects to the pads, and
+`librelane/pdn/pdn_cfg.tcl` the ring's construction. Any difference fails,
+named by file, slot, side and position, for example:
+
+    librelane/slots/slot_0p5x0p5.yaml: slot 0p5x0p5, PAD_EAST position 8: ws3 has inputs[6].pad (no supply pad), the template dvss_pads[1].pad
+    src/chip_top.sv: generate block dvdd_pads: connections: ws3 has .DVDD(DVDD), .DVSS(DVSS), .VDD(VSS), .VSS(VSS), the template .DVDD(DVDD), .DVSS(DVSS), .VDD(VDD), .VSS(VSS)
+
+It compares with the template at `d99f6e1`, the commit ws3 was made from,
+on every push, and on main and nightly with the template's current main as
+well, so a supply pad that wafer.space moves upstream fails CI (as when the
+quarter slot's east pair moved to pads 19 and 20). The template's files come
+from raw.githubusercontent.com, without credentials; one that cannot be read
+fails the check.
 
 ## Not in ws3
 

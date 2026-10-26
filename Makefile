@@ -162,6 +162,14 @@ PYTHON     ?= python3
 VERILATOR_FLAGS = --cc --exe --build -j 0 -O3 -Wall -Wno-fatal -Wno-WIDTH -Wno-CASEINCOMPLETE \
                   -Wno-UNUSEDSIGNAL --top-module z80_top -Isrc/rz80 $(RZ80_SRC)
 
+check-power-pads: ## Every power and ground pad as in the wafer.space template ws3 was made from (d99f6e1)
+	$(PYTHON) scripts/check_power_pads.py
+.PHONY: check-power-pads
+
+check-power-pads-upstream: ## ... and as in the template's current main
+	$(PYTHON) scripts/check_power_pads.py --ref main
+.PHONY: check-power-pads-upstream
+
 sync-check: ## RZ80's files in ws3 are what scripts/sync_rz80.py writes from rz80/
 	$(PYTHON) scripts/sync_rz80.py --check
 .PHONY: sync-check
@@ -267,12 +275,35 @@ rz80-basic: $(RZ80_BUILD)/obj_dir_basic/sim_basic ## NASCOM BASIC 4.7 and Tiny B
 
 # The pins against the NMOS Z80's AC characteristics (Zilog PS0178, Z8400, timing/),
 # measured by OpenSTA on the latest run at every process corner, the pads as RZ80
-# simulated them at transistor level (spice/pads/): GRADE=4 (Z80A), 6 or 8
-STA   ?= $(shell command -v sta || command -v openroad)
-GRADE ?= 4
-pin-timing: ## The pins against the NMOS Z80's datasheet at 4 MHz, every corner (OpenSTA)
-	STA="$(STA)" $(PYTHON) timing/pin_timing.py $$(ls -td librelane/runs/RUN_* | head -1) --grade $(GRADE)
+# simulated them at transistor level (spice/pads/), at each grade's own clock:
+# GRADES="4 6 8" (Z80A, Z80B, Z80H); every one must pass
+STA    ?= $(shell command -v sta || command -v openroad)
+GRADES ?= 4 6 8
+pin-timing: ## The pins against the NMOS Z80's datasheet at 4, 6 and 8 MHz, every corner (OpenSTA)
+	@run=$$(ls -td librelane/runs/RUN_* | head -1); fail=; \
+	for g in $(GRADES); do STA="$(STA)" $(PYTHON) timing/pin_timing.py $$run --grade $$g || fail="$$fail $$g"; done; \
+	if [ -n "$$fail" ]; then echo "pin timing FAILS at grade(s)$$fail MHz"; exit 1; fi
 .PHONY: pin-timing
+
+# The flow's constraints (librelane/config.yaml's SDC files), generated: one
+# clock at the CLK pin at the flow's CLOCK_PERIOD (the core's goal), every pin
+# parameter at the strictest of the NMOS Z80's 4, 6 and 8 MHz grades, each at
+# its own AC test edges (15, 16, 7.5 ns) and levels into 100 pF; the STA's own
+# edges are the fastest grade's, 7.5 ns (timing/pin_timing.py --write-sdc).
+# Change timing/, the generator or CLOCK_PERIOD, then `make sdc`; `make
+# sdc-check` (CI) fails on a stale file
+SDC        := timing/chip_top_nmos.sdc
+SDC_PERIOD := $(shell sed -n 's/^CLOCK_PERIOD: *\([0-9.]*\).*/\1/p' librelane/config.yaml)
+SDC_ARGS    = --period $(SDC_PERIOD) --grades 4,6,8 --edge 7.5 --load 100
+sdc: ## Write the flow's SDC: the NMOS Z80's datasheet on the pins, one clock
+	$(PYTHON) timing/pin_timing.py --write-sdc $(SDC) $(SDC_ARGS)
+.PHONY: sdc
+
+sdc-check: ## The flow's SDC is what `make sdc` writes
+	@tmp=$$(mktemp) && $(PYTHON) timing/pin_timing.py --write-sdc $$tmp $(SDC_ARGS) && \
+	  if cmp -s $$tmp $(SDC); then echo "$(SDC) is up to date"; rm -f $$tmp; \
+	  else diff -u $(SDC) $$tmp; rm -f $$tmp; echo "$(SDC) is stale: make sdc"; exit 1; fi
+.PHONY: sdc-check
 
 # wafer.space's precheck of the GDS, at a pinned commit of
 # https://github.com/wafer-space/gf180mcu-precheck, in that repository's own

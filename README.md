@@ -31,7 +31,7 @@ quarter slot; the project is built on wafer.space's
 | Slot | `0p5x0p5`: die 1936 × 2531 µm, core 1052 × 1647 µm |
 | Bus pads | `gf180mcu_fd_io__bi_t` at 4 mA with slow slew on all 32 bus pins: the library's weakest drive, near the NMOS Z80's (it sinks 2 mA at 0.4 V) |
 | Input pads | `in_s` (Schmitt trigger) for CLK and RESET, as on RZ80's own GF180 chip; `in_c` (CMOS) for WAIT, INT, NMI, BUSRQ; the 10 unused inputs pulled down |
-| Clock | laid out for 40 ns (25 MHz); the pins are checked against the NMOS Z80's datasheet at 4 MHz |
+| Clock | one clock, at the CLK pin; the core laid out for 50 ns (20 MHz) at every corner, the pins held to the NMOS Z80's datasheet at 4, 6 and 8 MHz |
 | Power-on | as on the Z80, none: hold RESET low for 3 clocks or more after power-up |
 
 ### Pins and pads
@@ -67,36 +67,74 @@ the two cells share their footprint and pins, so the pad keeps its place.
 
 ## Results
 
-A local run of `make librelane` on 2026-10-26 at `8981221` (CI repeats the
+A local run of `make librelane` on 2026-10-26 at `f873608` (CI repeats the
 flow on every push and prints its sign-off in the run's summary):
 
 | | |
 |---|---|
-| Logic | 10,756 cells, 243k µm² (14 % of the core), 479 flip-flops |
-| Setup slack, 40 ns | typical +8.11 ns · slow −1.99 ns (max wires −3.95) · fast +11.07 ns |
-| Hold slack | +0.26 ns or more at every corner |
-| Fastest clock | typical: 25 MHz with 8 ns to spare; slow corner (125 °C, 4.5 V, max wires): about 22 MHz |
-| Sign-off | route DRC 0, Magic DRC 0, KLayout DRC 0, LVS 0, antenna 0, XOR 0 |
-| NMOS Z80 pin timing, 4 MHz | PASS at the typical, slow and fast corners: all 47 parameters (`make pin-timing`) |
+| Logic | 11,895 cells, 260k µm² (15 % of the core), 479 flip-flops |
+| Setup slack, 50 ns | typical +10.84 ns · slow +2.56 ns (max wires +1.34) · fast +14.19 ns |
+| Hold slack | +0.67 ns or more at every corner |
+| Fastest clock | typical 35 MHz · slow 22 MHz (max wires 21 MHz) · fast 46 MHz |
+| Sign-off | route DRC 0, Magic DRC 0, KLayout DRC 0, LVS 0, antenna 0, XOR 0; setup and hold at all 9 corners |
+| NMOS Z80 pin timing | PASS at 4, 6 and 8 MHz at the typical, slow and fast corners: all 47 parameters at each grade's own clock (`make pin-timing`) |
 
-The flow signs setup off at the typical corner, as the template does, and
-holds at every corner; the slow corner is shown for what it is. At the slow
-corner the half-cycle paths (launched on one clock edge, caught on the
-other) need 44.8 ns, the whole-cycle ones 44.0 ns.
+The flow signs off setup and hold at every corner: typical, slow (125 °C,
+4.5 V) and fast (−40 °C, 5.5 V), each with nominal, minimum and maximum
+wires. The core's limit is its half-cycle paths (launched on one clock edge,
+caught on the other): the clock starts at the CLK pin, and the Schmitt-trigger
+CLK pad delays its fall about 3 ns more than its rise, which comes out of
+every such half-cycle, as it would on the chip.
 
-The pins, against the Z8400's AC characteristics at 4 MHz (Zilog PS0178,
-`timing/`), into the datasheet's 100 pF, with the pads as RZ80 simulated
-them at transistor level: every output 1.7-45.7 ns after its CLK edge
-(the limits are 65-150 ns); the opcode's setup TsD(Cr) needs 23.1 ns at the
-slow corner (35 allowed); the tightest margin is WAIT's hold at CLK's falling
-edge, 4.6 ns at the fast corner.
+### Timing constraints
+
+The flow is constrained by the NMOS Z80's datasheet, as RZ80's own chip
+flows are: `timing/chip_top_nmos.sdc`, generated from the Z8400's AC
+characteristics (Zilog PS0178, `timing/z8400_nmos.json`) by
+`timing/pin_timing.py --write-sdc` (`make sdc`; CI checks it is up to date),
+is the flow's one SDC, for placement, routing and sign-off:
+
+- one clock, CLK, at the CLK pin, 50 ns: the CLK pad and the clock tree are in
+  every path, the pins' as in the datasheet's measurements, and CTS builds
+  the tree from the pad's output;
+- every pin parameter that is a delay from a CLK edge -- the outputs'
+  delays, float delays, the inputs' setup and hold -- at the strictest of the
+  4, 6 and 8 MHz grades, in ns from the CLK pin's edge, each at its own grade's
+  test conditions: edges (15, 16, 7.5 ns), inputs valid at 2.0 / 0.8 V,
+  outputs at 1.5 V into 100 pF, the pads as RZ80 simulated them at transistor
+  level (`spice/pads/`), the corner that asks most. An output launched on one
+  CLK edge is held only to the parameter from that edge, an input only to the
+  setup and hold around the edge that samples it;
+- the flow's resizer repairs them at every corner: it adds the hold delay
+  the WAIT, INT, BUSRQ and RESET inputs need, as RZ80's chip flow does;
+- the special cases that hold on this chip: NMI is asynchronous (z80_top's
+  pulse catcher); MREQ, IORQ, RD and WR float only in a bus grant and come
+  back high, so their pads never turn on driving low; read data is held until
+  RD (IORQ in an interrupt acknowledge) rises, which `pin_timing.py` checks
+  against the chip's own RD; the data pads' input enables are no path. (RZ80's
+  z80_chip floats the address bus from RESET directly; here the address pads
+  follow z80_top's registered drive, so that case does not exist.)
+
+The parameters that depend on the clock period -- pulse widths and the
+separations between pins -- are `pin_timing.py`'s, which measures every
+parameter with OpenSTA at each grade's own clock, every corner (`make
+pin-timing`, every push).
+
+The pins, into 100 pF with the pads as RZ80 simulated them: every output
+1.5-46.1 ns after its CLK edge (the limits are 55-300 ns); the opcode's setup
+TsD(Cr) needs 21.1 ns at the slow corner (30-35 allowed). The tightest
+margins are the input holds at the fast corner, WAIT's 1.6 ns (6 MHz) and
+1.9 ns (4 MHz), and at 8 MHz the I/O write's data-to-WR separation, 1.6 ns.
+
+Against the run at `8981221` (40 ns, the template's constraints with a
+hand-written WAIT hold, setup signed off at the typical corner only, which
+missed 40 ns at the slow corner by up to 3.9 ns): the same logic plus 1,139
+more repair buffers, mostly the inputs' hold delay at every corner, 260k µm²
+against 243k. Measured the same way, from the CLK pin, that layout reaches
+32.5 MHz typical and 19.6 MHz slow (max wires); this one 35 and 21 MHz.
 
 Against ws0's quarter slot with RZ80 (9-track cells, `bi_24t` pads at their
-full drive, the pins held to the template's 25 MHz I/O budget): 12 % less
-logic area (243k µm² against 276k, the 7-track cells), and at the slow
-corner about 22 MHz against 23 MHz. ws0's typical-corner slack, +4.9 ns, is
-an output pad's; here the pins are checked against the datasheet instead,
-and the typical corner's worst path is inside the core, +8.1 ns.
+full drive): 6 % less logic area, 260k µm² against 276k, the 7-track cells.
 
 ## Tests
 
@@ -116,8 +154,11 @@ come from (the die through perfectz80, or real Z80s) and where it runs:
   flag corpus, RZ80's bus-control testbenches;
 - **Verilator on the RTL:** ZEXDOC and ZEXALL in full, Patrik Rak's
   z80test, NASCOM BASIC and Tiny BASIC;
-- **the layout:** LibreLane's sign-off, wafer.space's precheck, and OpenSTA
-  against the Z8400's AC characteristics at every corner.
+- **the layout:** LibreLane's sign-off at every corner, wafer.space's
+  precheck, and OpenSTA against the Z8400's AC characteristics at 4, 6 and
+  8 MHz at every corner;
+- **the pad ring:** every power and ground pad, in every slot, as in the
+  wafer.space template (`make check-power-pads`).
 
 Nothing may fail. CI (`.github/workflows/ci.yml`) runs all of it on every
 push, ZEXDOC and ZEXALL in full on main and nightly.
@@ -138,7 +179,8 @@ check out with the submodule, and run `nix-shell` here.
     make sim-system          # whole programs on the RTL
     make librelane           # RTL to GDS (final/ holds the views)
     make sim-gl sim-system-gl   # the same on the gate-level netlist
-    make pin-timing          # the pins against the NMOS datasheet, every corner
+    make pin-timing          # the pins against the NMOS datasheet, 4/6/8 MHz, every corner
+    make sdc                 # the flow's SDC, from timing/ (make sdc-check: up to date)
     make precheck            # wafer.space's precheck of final/gds/chip_top.gds
     make rz80-elab rz80-bus rz80-fuse rz80-xyflags rz80-traces rz80-sweep   # iverilog
     make rz80-traces-gl      # the trace programs on the gate-level netlist
@@ -156,6 +198,7 @@ and `--check` (CI) fails when a copy is out of step:
 
     git -C rz80 fetch && git -C rz80 checkout <commit>
     scripts/sync_rz80.py
+    make sdc                 # timing/ may have changed
     git add rz80 src/rz80 tests/rz80 timing spice && git commit
 
 ## Licensing
