@@ -37,4 +37,4 @@ and whose device models are reformatted. Simulated again on it, every
 measurement matches RZ80's within `pads.py`'s tolerances (2026-10-26; the
 transistor workflow's `pads` job repeats the check):
 
-    python3 spice/pads.py gf180mcu --pdk-root gf180mcu/ciel --out build/pads-check --check spice/pads/gf180mcu/pads.json
+    python3 spice/pads.py gf180mcu --pdk-root "$PWD/gf180mcu/ciel" --out build/pads-check --check spice/pads/gf180mcu/pads.json
