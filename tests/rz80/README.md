@@ -5,7 +5,7 @@ submodule, [https://github.com/rejunity/z80-from-schematics](https://github.com/
 
 | | commit |
 |---|---|
-| main (the submodule) | [`193230c`](https://github.com/rejunity/z80-from-schematics/commit/193230c3b8eea06b65b7e1c79734a599418c23ad) (2026-10-26 docs: the pin-sweep recordings' verification takes 7-11 min a shard) |
+| main (the submodule) | [`573bf12`](https://github.com/rejunity/z80-from-schematics/commit/573bf122a620b2c9d43ded368752a99398b42c39) (2026-10-26 pads: their power at transistor level, internal and leakage) |
 | asic-gf180mcu (the chip flows' glue) | [`c88cc6b`](https://github.com/rejunity/z80-from-schematics/commit/c88cc6bcee12d43ca3031d0ff86c374c7ee992f2) |
 
 | ws3 | RZ80 | from | |

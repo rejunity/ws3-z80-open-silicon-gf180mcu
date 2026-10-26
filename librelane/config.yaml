@@ -99,11 +99,13 @@ TIMING_VIOLATION_CORNERS: ["*"]
 # The pads' timing as RZ80 simulated them at transistor level (spice/pads/,
 # spice/pads.py): the PDK's gf180mcu_fd_io libraries with bi_t, in_c and in_s
 # re-measured as chip_top ties them, into the datasheet's 100 pF and with its
-# slow edges (to 30 ns) -- where the PDK's own tables (to 20-33 pF, 1-5 ns
-# edges) are extrapolated. The SDC's datasheet contract is repaired and signed
-# off against the same pads timing/pin_timing.py checks. Their power tables
-# are the PDK's, to 30 pF: at 100 pF the flow's power figure for the pads is
-# extrapolated (negative), not a measurement.
+# slow edges (to 120 ns, past the slowest edge a bi_t makes into 250 pF) --
+# where the PDK's own tables (to 20-33 pF, 1-5 ns edges) are extrapolated --
+# and that range as their pins' max_transition / max_capacitance. The SDC's
+# datasheet contract is repaired and signed off against the same pads
+# timing/pin_timing.py checks. Their power too: internal and leakage power
+# measured in the same runs, where the PDK's tables (to 30 pF) extrapolated to
+# 100 pF went negative.
 PAD_LIBS:
   "*_tt_025C_5v00": [dir::../spice/pads/gf180mcu/gf180mcu_fd_io__tt_025C_5v00.lib]
   "*_ff_n40C_5v50": [dir::../spice/pads/gf180mcu/gf180mcu_fd_io__ff_n40C_5v50.lib]
