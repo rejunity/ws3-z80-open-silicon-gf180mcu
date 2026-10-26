@@ -8,9 +8,10 @@ name: CI
 #                 RTL; the trace programs, pin scenarios and the pin sweep
 #                 against perfectz80's recorded traces;
 #                 Verilator: z80test, the BASICs, 14 tests of ZEXALL; the chip:
-#                 cocotb on the RTL, RTL-to-GDS, sign-off, cocotb on the
-#                 gate-level netlist, wafer.space's precheck, the NMOS pin timing
-#                 at 4, 6 and 8 MHz
+#                 cocotb on the RTL, RTL-to-GDS, sign-off, every pin's edge,
+#                 load and fanout within its limits at every corner, cocotb on
+#                 the gate-level netlist, wafer.space's precheck, the NMOS pin
+#                 timing at 4, 6 and 8 MHz
 #   main, nightly and on demand: all of ZEXDOC and ZEXALL (Verilator), in parts
 #                 that each fit a job; nightly and on demand, the pin sweep's
 #                 opcodes_reset group
@@ -234,6 +235,14 @@ jobs:
           { echo '# Sign-off'; echo '```'; cat signoff.txt; echo '```'; } >> $GITHUB_STEP_SUMMARY
           echo "# Manufacturability" >> $GITHUB_STEP_SUMMARY
           cat librelane/runs/*/*-misc-reportmanufacturability/manufacturability.rpt >> $GITHUB_STEP_SUMMARY
+          exit $rc
+      - name: Every pin's edge, load and fanout within its limits, every corner (the cells' own; the pads' simulated range)
+        if: success() || failure()
+        run: |
+          rc=0
+          nix develop --command make check-drv > drv.txt || rc=$?
+          cat drv.txt
+          { echo '# Max slew, capacitance, fanout'; echo '```'; cat drv.txt; echo '```'; } >> $GITHUB_STEP_SUMMARY
           exit $rc
       - name: Print the hash
         if: success() || failure()

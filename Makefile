@@ -301,6 +301,13 @@ pin-timing: ## The pins against the NMOS Z80's datasheet at 4, 6 and 8 MHz, ever
 	if [ -n "$$fail" ]; then echo "pin timing FAILS at grade(s)$$fail MHz"; exit 1; fi
 .PHONY: pin-timing
 
+# Every pin's edge, load and fanout within its limits at every corner, as the
+# latest run's sign-off STA counts them: the core's limits in the standard
+# cells' libraries (cell-libs), the pads' range in theirs (spice/pads/)
+check-drv: ## No max slew, max capacitance or max fanout violation at any corner (the latest run)
+	$(PYTHON) scripts/check_drv.py $$(ls -td librelane/runs/RUN_* | head -1)
+.PHONY: check-drv
+
 # The flow's constraints (librelane/config.yaml's SDC files), generated: one
 # clock at the CLK pin at the flow's CLOCK_PERIOD (the core's goal), every pin
 # parameter at the strictest of the NMOS Z80's 4, 6 and 8 MHz grades, each at
