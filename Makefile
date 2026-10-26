@@ -162,6 +162,14 @@ PYTHON     ?= python3
 VERILATOR_FLAGS = --cc --exe --build -j 0 -O3 -Wall -Wno-fatal -Wno-WIDTH -Wno-CASEINCOMPLETE \
                   -Wno-UNUSEDSIGNAL --top-module z80_top -Isrc/rz80 $(RZ80_SRC)
 
+check-power-pads: ## Every power and ground pad as in the wafer.space template ws3 was made from (d99f6e1)
+	$(PYTHON) scripts/check_power_pads.py
+.PHONY: check-power-pads
+
+check-power-pads-upstream: ## ... and as in the template's current main
+	$(PYTHON) scripts/check_power_pads.py --ref main
+.PHONY: check-power-pads-upstream
+
 sync-check: ## RZ80's files in ws3 are what scripts/sync_rz80.py writes from rz80/
 	$(PYTHON) scripts/sync_rz80.py --check
 .PHONY: sync-check

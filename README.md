@@ -113,7 +113,9 @@ come from (the die through perfectz80, or real Z80s) and where it runs:
 - **Verilator on the RTL:** ZEXDOC and ZEXALL in full, Patrik Rak's
   z80test, NASCOM BASIC and Tiny BASIC;
 - **the layout:** LibreLane's sign-off, wafer.space's precheck, and OpenSTA
-  against the Z8400's AC characteristics at every corner.
+  against the Z8400's AC characteristics at every corner;
+- **the pad ring:** every power and ground pad, in every slot, as in the
+  wafer.space template (`make check-power-pads`).
 
 Nothing may fail. CI (`.github/workflows/ci.yml`) runs all of it on every
 push, ZEXDOC and ZEXALL in full on main and nightly.

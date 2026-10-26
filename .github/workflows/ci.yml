@@ -1,7 +1,9 @@
 name: CI
 
 # The chip and its tests (tests/README.md).
-#   every push:   RZ80's files in step with rz80/; RZ80's iverilog tests of the
+#   every push:   the power and ground pads as in the wafer.space template
+#                 (and, on main and nightly, as in the template's current main);
+#                 RZ80's files in step with rz80/; RZ80's iverilog tests of the
 #                 RTL; the trace programs, pin scenarios and the pin sweep
 #                 against perfectz80's recorded traces;
 #                 Verilator: z80test, the BASICs, 14 tests of ZEXALL; the chip:
@@ -37,6 +39,19 @@ jobs:
           submodules: recursive
       - name: scripts/sync_rz80.py --check
         run: make sync-check
+
+  power-pads:
+    name: Power and ground pads as in the wafer.space template
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Against the template commit ws3 was made from (d99f6e1)
+        run: make check-power-pads
+      # wafer.space moving a supply pad upstream fails main and the nightly run
+      - name: Against the template's current main
+        if: github.ref == 'refs/heads/main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: make check-power-pads-upstream
 
   rtl:
     name: RZ80's RTL tests (iverilog)
@@ -134,7 +149,7 @@ jobs:
     name: ${{ matrix.zex }} part ${{ matrix.part }} (Verilator)
     if: github.ref == 'refs/heads/main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    timeout-minutes: 350
+    timeout-minutes: 360        # GitHub's limit: test 5 alone took 3 h 17 min and 4 h 30 min (23ab727)
     strategy:
       fail-fast: false
       # Each of ZEXDOC and ZEXALL runs 5.76 G instructions, 93.5 G clock phases
