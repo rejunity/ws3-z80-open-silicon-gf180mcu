@@ -93,12 +93,18 @@ if { [llength $ie_pins] > 0 } {
 }
 
 # The pins as the NMOS Z80's datasheet has them (Zilog PS0178's AC test
-# conditions, timing/): 15 ns edges on CLK and the inputs, and every input free
-# to change right at the CLK edge that samples it (holds of 0). The template's
-# input delays are on the rising edge only; WAIT is sampled on the falling edge
-# (P18 ThWAIT(Cf) = 0), which the falling edge reaching the core late through
-# the Schmitt CLK pad and the clock tree turns into ~5 ns of hold at the pin
-# unless the resizer delays WAIT's path to match. timing/pin_timing.py
-# (make pin-timing) checks every parameter at every corner.
+# conditions; timing/pin_timing.py, `make pin-timing`, checks every parameter at
+# every corner): 15 ns edges on CLK and the inputs.
 set_input_transition 15 [get_ports {clk_PAD rst_n_PAD input_PAD[*] bidir_PAD[*]}]
-set_input_delay -min 0 -clock_fall -clock $clocks -add_delay [get_ports {input_PAD[0]}]
+
+# WAIT (input_PAD[0]) as the Z80 samples it, on CLK's falling edge (P17
+# TsWAIT(Cf), P18 ThWAIT(Cf) = 0): set up from the falling edge before (MREQ and
+# IORQ fall on one edge, WAIT is sampled on the next), and free to change right
+# at the CLK pin's falling edge. That edge reaches clk_pad/Y, where this SDC's
+# clock starts, 6.2-7.3 ns later: the Schmitt CLK pad on a 15 ns edge, as RZ80
+# simulated it at transistor level (spice/pads/gf180mcu/; the PDK's library
+# says 6.8-8.1 ns). So WAIT is held 6 ns past the edge at Y; at 0 the flow left
+# it 0.6-2.1 ns short of the datasheet's hold at the pin.
+unset_input_delay [get_ports {input_PAD[0]}]
+set_input_delay -clock $clocks -clock_fall -max 0 [get_ports {input_PAD[0]}]
+set_input_delay -clock $clocks -clock_fall -min -6 [get_ports {input_PAD[0]}]

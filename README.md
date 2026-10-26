@@ -26,7 +26,7 @@ quarter slot; the project is built on wafer.space's
 | Cells | `gf180mcu_fd_sc_mcu7t5v0`, the 7-track 5 V library |
 | Slot | `0p5x0p5`: die 1936 × 2531 µm, core 1052 × 1647 µm |
 | Bus pads | `gf180mcu_fd_io__bi_t` at 4 mA with slow slew on all 32 bus pins: the library's weakest drive, near the NMOS Z80's (it sinks 2 mA at 0.4 V) |
-| Input pads | `in_c` (CMOS) for RESET, WAIT, INT, NMI, BUSRQ; `in_s` (Schmitt) for CLK; the 10 unused inputs pulled down |
+| Input pads | `in_s` (Schmitt trigger) for CLK and RESET, as on RZ80's own GF180 chip; `in_c` (CMOS) for WAIT, INT, NMI, BUSRQ; the 10 unused inputs pulled down |
 | Clock | laid out for 40 ns (25 MHz); the pins are checked against the NMOS Z80's datasheet at 4 MHz |
 | Power-on | as on the Z80, none: hold RESET low for 3 clocks or more after power-up |
 
@@ -52,15 +52,21 @@ Pads are numbered counter-clockwise from the bottom left of the layout
 | 12 | A6 | 26 | - | 40 | D1 | 54 | BUSRQ |
 | 13 | A7 | 27 | - | 41 | VDD | 55 | RESET |
 
+RESET (pad 55) is on a Schmitt-trigger pad, `in_s`, like CLK (pad 28), as on
+RZ80's own GF180 chip: a RESET from an RC network ramps slowly, and the
+hysteresis switches it once. The template, and ws0, have a CMOS `in_c` there;
+the two cells share their footprint and pins, so the pad keeps its place.
+
 `DVDD`/`DVSS` are the I/O supply and `VDD`/`VSS` the core's: the
 `gf180mcu_fd_io` library shorts the two domains, so the chip runs from one
 5 V supply, like the Z80.
 
 ## Results
 
-A local run of `make librelane` on 2026-10-26, before the SDC held WAIT to the
-datasheet's hold at the CLK pin (CI repeats the flow on every push and prints
-its sign-off and the pin timing in the run's summary):
+A local run of `make librelane` on 2026-10-26, with RESET still on an `in_c`
+pad and before the SDC held WAIT to the datasheet's hold at the CLK pin (CI
+repeats the flow on every push and prints its sign-off and the pin timing in
+the run's summary):
 
 | | |
 |---|---|

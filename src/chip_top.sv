@@ -74,7 +74,7 @@
 // Z80 has 40 pins in total:
 // - 8 bidirectional pins
 // - 24 output pins
-// - 5 input pins
+// - 5 input pins (RESET on a Schmitt trigger pad)
 // - 1 clock (Schmitt trigger)
 // - 2 power pins
 
@@ -136,9 +136,9 @@
 //                  0 1   3   5   7   9   11  13  15
 
 // out of 56 signal pads:
-// - 1 clock (Schmitt trigger)
+// - 1 clock and 1 RESET (Schmitt trigger)
 // - 8+24 bidir
-// - 5 input 
+// - 4 input (WAIT INT NMI BUSRQ)
 // - 18 unused (forced to input)
 
 
@@ -147,9 +147,9 @@
 // -  8 pins are dedicated to power supply and their locations CAN NOT be changed!
 
 // out of 48 signal pads:
-// - 1 clock (Schmitt trigger)
+// - 1 clock and 1 RESET (Schmitt trigger)
 // - 8+24 bidir
-// - 5 input 
+// - 4 input (WAIT INT NMI BUSRQ)
 // - 10 unused (forced to input)
 
 module chip_top #(
@@ -270,8 +270,10 @@ module chip_top #(
         .PD     (1'b0)
     );
     
-    // Normal input
-    `gf180mcu_xxx_io__in_c rst_n_pad (
+    // Schmitt trigger too, as on RZ80's own GF180 chip: RESET is often an RC
+    // ramp from power-up, and the hysteresis gives it one clean edge (the
+    // template has a normal input, in_c: same footprint, pins and place)
+    `gf180mcu_xxx_io__in_s rst_n_pad (
         `ifdef USE_POWER_PINS
         .DVDD   (DVDD),
         .DVSS   (DVSS),
