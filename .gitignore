@@ -1,6 +1,6 @@
 runs/
 __pycache__/
-gf180mcu/
+/gf180mcu/      # the PDK (make clone-pdk); spice/*/gf180mcu/ are results
 gf180_drc.lyrdb
 sim_build/
 final/
