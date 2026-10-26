@@ -246,6 +246,6 @@ jobs:
       - name: The pins against the NMOS Z80's datasheet at 4 MHz (OpenSTA, every corner)
         if: success() || failure()
         run: nix develop --command make pin-timing
-      - name: wafer.space precheck
+      - name: wafer.space precheck (its own Nix shell)
         if: success() || failure()
-        run: nix develop --command make precheck
+        run: make precheck

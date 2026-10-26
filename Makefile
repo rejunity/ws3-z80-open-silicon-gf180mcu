@@ -233,16 +233,20 @@ pin-timing: ## The pins against the NMOS Z80's datasheet at 4 MHz, every corner 
 	STA="$(STA)" $(PYTHON) timing/pin_timing.py $$(ls -td librelane/runs/RUN_* | head -1) --grade $(GRADE)
 .PHONY: pin-timing
 
-# wafer.space's precheck of the GDS, at the commit that matches the template's
-# LibreLane and PDK
+# wafer.space's precheck of the GDS, at a pinned commit of
+# https://github.com/wafer-space/gf180mcu-precheck, in that repository's own
+# Nix shell (its LibreLane, the template's, plus qrcode and procps for the ID
+# cells and the density deck). PRECHECK_SHELL= runs it in the current shell.
 PRECHECK_COMMIT := 9b4e7dab6af073d02b81ecc368069540d2f67db9
 PRECHECK_DIR    := build/precheck
-PRECHECK_PYTHON ?= python3     # one with LibreLane's modules (the Nix shell's)
+PRECHECK_SHELL  ?= nix develop ./$(PRECHECK_DIR) --accept-flake-config --command
+PRECHECK_PYTHON ?= python3
 precheck: ## wafer.space's precheck of final/gds/chip_top.gds for the quarter slot
 	@if [ ! -d $(PRECHECK_DIR)/.git ]; then \
 	  git init -q $(PRECHECK_DIR) && \
 	  git -C $(PRECHECK_DIR) fetch -q --depth=1 https://github.com/wafer-space/gf180mcu-precheck $(PRECHECK_COMMIT) && \
 	  git -C $(PRECHECK_DIR) checkout -q FETCH_HEAD; fi
-	PDK_ROOT=$(PDK_ROOT) PDK=$(PDK) $(PRECHECK_PYTHON) $(PRECHECK_DIR)/precheck.py --input final/gds/chip_top.gds \
-	  --slot $(SLOT) --dir build/precheck-run
+	mkdir -p build/precheck-run
+	$(PRECHECK_SHELL) env PDK_ROOT=$(PDK_ROOT) PDK=$(PDK) $(PRECHECK_PYTHON) $(PRECHECK_DIR)/precheck.py \
+	  --input final/gds/chip_top.gds --slot $(SLOT) --dir build/precheck-run
 .PHONY: precheck

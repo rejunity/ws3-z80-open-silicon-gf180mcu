@@ -63,22 +63,36 @@ the two cells share their footprint and pins, so the pad keeps its place.
 
 ## Results
 
-A local run of `make librelane` on 2026-10-26, with RESET still on an `in_c`
-pad and before the SDC held WAIT to the datasheet's hold at the CLK pin (CI
-repeats the flow on every push and prints its sign-off and the pin timing in
-the run's summary):
+A local run of `make librelane` on 2026-10-26 at `8981221` (CI repeats the
+flow on every push and prints its sign-off in the run's summary):
 
 | | |
 |---|---|
-| Logic | 10,617 cells, 241k µm² (14 % of the core), 479 flip-flops |
-| Setup slack, 40 ns | typical +8.12 ns · slow -1.73 ns (max wires -3.45) · fast +12.37 ns |
-| Hold slack | +0.31 ns (every corner positive) |
-| Fastest clock | typical ≥ 25 MHz; slow corner (125 °C, 4.5 V) about 21 MHz |
-| Sign-off | route DRC 0, Magic DRC 0, KLayout DRC 0, LVS 0, antenna 0 |
-| NMOS Z80 pin timing, 4 MHz | every parameter met at every corner but ThWAIT(Cf), WAIT's hold at CLK's falling edge (4.8-5.6 ns needed, 0 allowed): `librelane/chip_top.sdc` now constrains it, and CI checks all of them |
+| Logic | 10,756 cells, 243k µm² (14 % of the core), 479 flip-flops |
+| Setup slack, 40 ns | typical +8.11 ns · slow −1.99 ns (max wires −3.95) · fast +11.07 ns |
+| Hold slack | +0.26 ns or more at every corner |
+| Fastest clock | typical: 25 MHz with 8 ns to spare; slow corner (125 °C, 4.5 V, max wires): about 22 MHz |
+| Sign-off | route DRC 0, Magic DRC 0, KLayout DRC 0, LVS 0, antenna 0, XOR 0 |
+| NMOS Z80 pin timing, 4 MHz | PASS at the typical, slow and fast corners: all 47 parameters (`make pin-timing`) |
 
-Against ws0's quarter slot with RZ80 (9-track cells, 24 mA fast pads,
-pins held to the template's 25 MHz budget): about 13 % less logic area (241k against 276k µm²: the 7-track cells), and at the slow corner about 21 MHz against 23 MHz; ws0's quarter signed off at +4.9 ns at the typical corner, this one at +8.1 ns, the bus pads timed against the datasheet instead.
+The flow signs setup off at the typical corner, as the template does, and
+holds at every corner; the slow corner is shown for what it is. At the slow
+corner the half-cycle paths (launched on one clock edge, caught on the
+other) need 44.8 ns, the whole-cycle ones 44.0 ns.
+
+The pins, against the Z8400's AC characteristics at 4 MHz (Zilog PS0178,
+`timing/`), into the datasheet's 100 pF, with the pads as RZ80 simulated
+them at transistor level: every output 1.7-45.7 ns after its CLK edge
+(the limits are 65-150 ns); the opcode's setup TsD(Cr) needs 23.1 ns at the
+slow corner (35 allowed); the tightest margin is WAIT's hold at CLK's falling
+edge, 4.6 ns at the fast corner.
+
+Against ws0's quarter slot with RZ80 (9-track cells, `bi_24t` pads at their
+full drive, the pins held to the template's 25 MHz I/O budget): 12 % less
+logic area (243k µm² against 276k, the 7-track cells), and at the slow
+corner about 22 MHz against 23 MHz. ws0's typical-corner slack, +4.9 ns, is
+an output pad's; here the pins are checked against the datasheet instead,
+and the typical corner's worst path is inside the core, +8.1 ns.
 
 ## Tests
 

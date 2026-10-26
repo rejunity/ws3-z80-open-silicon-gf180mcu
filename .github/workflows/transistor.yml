@@ -39,7 +39,9 @@ jobs:
   netlist:
     name: the chip extracted, and the RTL's reference
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    # Magic extracts the flat chip, coupling capacitance included, in about an
+    # hour here (8 cores, one used); a GitHub runner is slower
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v6
       - uses: DeterminateSystems/nix-installer-action@main
