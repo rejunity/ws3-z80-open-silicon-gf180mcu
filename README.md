@@ -103,10 +103,13 @@ come from (the die through perfectz80, or real Z80s) and where it runs:
   ws0's 14 pin-level tests, RZ80's signs of life, HALT to INT acknowledge
   against the die, every instruction of a real Z80's logic-analyser
   capture (a KC 85/4's U880), and Cringle's prelim;
+- **iverilog, against perfectz80's recorded traces, half-cycle by
+  half-cycle:** the 14 trace programs and the 15 pin scenarios, on the RTL
+  and on the chip's netlist through its pads; the pin sweep, every opcode
+  and pin event (51,126 cases; RESET at every half-cycle of every opcode
+  nightly);
 - **iverilog on the RTL:** FUSE's tests with the die's values, the X / Y
-  flag corpus, RZ80's bus-control testbenches, and the pin sweep: every
-  opcode and pin event against perfectz80's recorded traces, half-cycle by
-  half-cycle;
+  flag corpus, RZ80's bus-control testbenches;
 - **Verilator on the RTL:** ZEXDOC and ZEXALL in full, Patrik Rak's
   z80test, NASCOM BASIC and Tiny BASIC;
 - **the layout:** LibreLane's sign-off, wafer.space's precheck, and OpenSTA
@@ -133,7 +136,8 @@ check out with the submodule, and run `nix-shell` here.
     make sim-gl sim-system-gl   # the same on the gate-level netlist
     make pin-timing          # the pins against the NMOS datasheet, every corner
     make precheck            # wafer.space's precheck of final/gds/chip_top.gds
-    make rz80-elab rz80-bus rz80-fuse rz80-xyflags rz80-sweep   # iverilog
+    make rz80-elab rz80-bus rz80-fuse rz80-xyflags rz80-traces rz80-sweep   # iverilog
+    make rz80-traces-gl      # the trace programs on the gate-level netlist
     make rz80-z80test Z80TEST=z80full   rz80-basic   rz80-zex ZEX=zexdoc   # Verilator
 
 `make librelane-openroad` and `make librelane-klayout` open the last run;

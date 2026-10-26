@@ -9,7 +9,12 @@
 // interrupt acknowledge (M1 and IORQ low); data_drive is the CPU's write.
 // The unused input pads are held low, as their pull-downs would.
 `default_nettype none
-module z80_chip_shim (
+`ifndef Z80_SHIM
+`define Z80_SHIM z80_chip_shim
+`endif
+// (compiled as z80_top, -DZ80_SHIM=z80_top, it takes the place of RZ80's
+// core in RZ80's own testbenches: tests/rz80/iverilog/tb_z80_netlist.v)
+module `Z80_SHIM (
     input  wire        clk,
     input  wire        por_n,      // z80_top's power-on reset: the chip ties it off
     input  wire        reset_n,
@@ -26,6 +31,20 @@ module z80_chip_shim (
     wire [13:0] inputs = {10'b0, busreq_n, nmi_n, int_n, wait_n};
     wire        clk_pad = clk, rst_pad = reset_n;
     assign bidir[7:0] = (!rd_n || (!m1_n && !iorq_n)) ? data_in : 8'bz;
+    // the bus reads 00 while nobody drives it, as the testbenches' memory
+    // hands z80_top's data_in (a floating pad would read X)
+    pulldown bus_pd [7:0] (bidir[7:0]);
+    // The output pins as a charge: a pad that floats (the address and MREQ
+    // IORQ RD WR in a bus grant, the address in the RESET idle) keeps the
+    // level it was last driven to, as the die's floating pad node does in
+    // perfectz80's recorded traces (z80_top's own outputs, in the RTL
+    // benches, never float). A weak keeper on each, as iverilog has no trireg.
+    reg [31:8] kept;
+    genvar g;
+    generate for (g = 8; g < 32; g = g + 1) begin : keeper
+        assign (weak1, weak0) bidir[g] = kept[g];
+        always @(bidir[g]) if (bidir[g] === 1'b0 || bidir[g] === 1'b1) kept[g] = bidir[g];
+    end endgenerate
     assign data_out   = bidir[7:0];
     assign data_drive = !wr_n;
     assign addr       = bidir[23:8];

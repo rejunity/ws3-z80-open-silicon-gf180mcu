@@ -36,6 +36,31 @@ defaults:
     shell: bash
 
 jobs:
+  pads:
+    name: the pads at transistor level, on this PDK, against spice/pads/gf180mcu/
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-substituters = https://nix-cache.fossi-foundation.org
+            extra-trusted-public-keys = nix-cache.fossi-foundation.org:3+K59iFwXqKsL7BNu6Guy0v+uTlwsxYQxjspXzqLYQs=
+            extra-experimental-features = nix-command flakes
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: The PDK (cached)
+        uses: actions/cache@v4
+        with:
+          path: gf180mcu
+          key: ciel-gf180mcu-${{ env.PDK_COMMIT }}
+      - name: Fetch the PDK (LibreLane's ciel)
+        run: |
+          [ -d gf180mcu/$PDK ] ||
+            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: pads.py --check (every measurement within pads.py's tolerances)
+        run: python3 spice/pads.py gf180mcu --pdk-root gf180mcu/ciel --jobs 4 --out build/pads-check --check spice/pads/gf180mcu/pads.json
+
   netlist:
     name: the chip extracted, and the RTL's reference
     runs-on: ubuntu-24.04

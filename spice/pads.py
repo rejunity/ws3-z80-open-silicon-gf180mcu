@@ -58,7 +58,7 @@ NMOS_IOL, NMOS_IOH = 2.0, 0.25                # mA
 # pad), inp = (pad, core-side output).
 PDKS = {
     "gf180mcu": {
-        "root": "gf180mcu/versions/54435919abffb937387ec956209f9cf5fd2dfbee/gf180mcuD",
+        "root": "gf180mcu/versions/792ef67037d74c8c51811eab3ce23cf793491296/gf180mcuD",   # ws3: the template's
         "netlist": "libs.ref/gf180mcu_fd_io/spice/gf180mcu_fd_io.spice",
         "liberty": "libs.ref/gf180mcu_fd_io/lib/gf180mcu_fd_io__{}.lib",
         "corners": {"tt": ("tt_025C_5v00", "typical", 25, 5.0, 5.0),

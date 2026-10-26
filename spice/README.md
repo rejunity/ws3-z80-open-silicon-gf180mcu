@@ -29,4 +29,12 @@ artifact `transistor-results`; they are committed under `chip/gf180mcu/`
 
 `pads/gf180mcu/` holds the pads RZ80 simulated at transistor level
 (`asic/spice/pads.py`): Liberty tables to the datasheet's 100 pF and its
-measuring levels, which `timing/pin_timing.py` reads.
+measuring levels, which `timing/pin_timing.py` reads. They are the pads this
+chip uses, configured as it ties them: `bi_t` at 4 mA with slow slew, `in_c`,
+and `in_s` for CLK and RESET. RZ80 characterised them on open_pdks
+`54435919`; the template's PDK is `792ef670`, whose pad netlists are the same
+and whose device models are reformatted. Simulated again on it, every
+measurement matches RZ80's within `pads.py`'s tolerances (2026-10-26; the
+transistor workflow's `pads` job repeats the check):
+
+    python3 spice/pads.py gf180mcu --pdk-root gf180mcu/ciel --out build/pads-check --check spice/pads/gf180mcu/pads.json

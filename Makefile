@@ -193,12 +193,53 @@ rz80-xyflags: $(XYFLAGS)/tests.in $(XYFLAGS)/tests.expected ## The X / Y flag co
 	  $(PYTHON) tests/rz80/scripts/compare_fuse_rtl.py
 .PHONY: rz80-xyflags
 
+# perfectz80's side of these comparisons is RZ80's recordings in the
+# submodule (tests/traces/pz80/, tests/event_sweep/pz80/): RZ80's scripts,
+# unchanged, never run perfectz80 here (--recorded, --recorded-only)
+PZ80_TRACES := rz80/tests/traces/pz80
+TRACE_PROGS := $(sort $(wildcard rz80/tests/traces/*.hex))
+PIN_SCENARIOS := $(sort $(wildcard rz80/tests/traces/pin_scenarios/*.hex))
+TRACES = PZ80_TRACES=$(PZ80_TRACES) EMIT_VCD=0 $(PYTHON) tests/rz80/scripts/compare_signal_timing.py --recorded
+
+$(RZ80_BUILD)/tb_z80.vvp: tests/rz80/iverilog/tb_z80.v $(RZ80_SRC)
+	@mkdir -p $(RZ80_BUILD)
+	$(IVERILOG) -g2001 -Isrc/rz80 -s tb_z80 -o $@ $(RZ80_SRC) $<
+
+rz80-traces: $(RZ80_BUILD)/tb_z80.vvp ## The 14 trace programs and 15 pin scenarios against perfectz80's recordings, half-cycle by half-cycle (iverilog, RTL)
+	TB_VVP=$(RZ80_BUILD)/tb_z80.vvp $(TRACES) --rtl=iverilog 200 $(TRACE_PROGS)
+	TB_VVP=$(RZ80_BUILD)/tb_z80.vvp $(TRACES) --rtl=iverilog 200 $(PIN_SCENARIOS)
+.PHONY: rz80-traces
+
+# The same on the chip's gate-level netlist through its pads: RZ80's
+# tb_z80_netlist.v around cocotb/chip_shim.v, compiled as z80_top. The bench
+# runs a 4 ns clock and reads the pins 1 ns after each edge, zero-delay, as
+# the cells' FUNCTIONAL models are; the PDK's pad models put a 1 ns gate delay
+# on every path, so the bench takes a copy without them (the same logic).
+GL_LIBS = $(PDK_ROOT)/$(PDK)/libs.ref
+$(RZ80_BUILD)/$(PAD)_zero_delay.v: $(GL_LIBS)/$(PAD)/verilog/$(PAD).v
+	@mkdir -p $(RZ80_BUILD)
+	sed -E 's/^([[:space:]]*(and|buf|bufif1|rnmos)) #1 /\1 /; /^specify/,/^endspecify/d' $< > $@
+	! grep -n '#1\|specify' $@
+
+$(RZ80_BUILD)/tb_z80_netlist.vvp: tests/rz80/iverilog/tb_z80_netlist.v cocotb/chip_shim.v final/pnl/chip_top.pnl.v $(RZ80_BUILD)/$(PAD)_zero_delay.v
+	$(IVERILOG) -g2012 -DFUNCTIONAL -DUSE_POWER_PINS -DGL -DZ80_SHIM=z80_top -s tb_z80 -o $@ $< cocotb/chip_shim.v \
+	  final/pnl/chip_top.pnl.v $(GL_LIBS)/$(SCL)/verilog/$(SCL).v $(GL_LIBS)/$(SCL)/verilog/primitives.v \
+	  $(RZ80_BUILD)/$(PAD)_zero_delay.v $(foreach m,logo marker qrcode_id shuttle_id project_id,ip/gf180mcu_ws_ip__$(m)/vh/gf180mcu_ws_ip__$(m).v)
+
+rz80-traces-gl: $(RZ80_BUILD)/tb_z80_netlist.vvp ## The trace programs and pin scenarios on the chip's gate-level netlist, through the pads (after copy-final)
+	TB_NETLIST_VVP=$< NETLIST_LABEL="chip_top, through its pads" $(TRACES) --rtl=netlist 200 $(TRACE_PROGS)
+	TB_NETLIST_VVP=$< NETLIST_LABEL="chip_top, through its pads" $(TRACES) --rtl=netlist 200 $(PIN_SCENARIOS)
+.PHONY: rz80-traces-gl
+
 SWEEP_SHARD ?=
-rz80-sweep: ## The pin sweep, half-cycle by half-cycle against perfectz80's recorded traces (iverilog; SWEEP_SHARD=k/n)
+SWEEP_GROUPS ?= all
+rz80-sweep: ## The pin sweep, half-cycle by half-cycle against perfectz80's recorded traces (iverilog; SWEEP_SHARD=k/n, SWEEP_GROUPS=opcodes_reset)
 	@mkdir -p $(RZ80_BUILD)
 	$(IVERILOG) -g2001 -Isrc/rz80 -s tb_event_sweep -o $(RZ80_BUILD)/tb_event_sweep.vvp \
 	  $(RZ80_SRC) tests/rz80/iverilog/tb_event_sweep.v
-	$(PYTHON) tests/rz80/scripts/event_sweep.py $(if $(SWEEP_SHARD),--shard $(SWEEP_SHARD))
+	EVENT_SWEEP_TB_VVP=$(RZ80_BUILD)/tb_event_sweep.vvp EVENT_SWEEP_PZ80=rz80/tests/event_sweep/pz80 \
+	  $(PYTHON) tests/rz80/scripts/event_sweep.py --recorded-only --groups $(SWEEP_GROUPS) \
+	  --out $(RZ80_BUILD)/event_sweep_$(SWEEP_GROUPS) $(if $(SWEEP_SHARD),--shard $(SWEEP_SHARD))
 .PHONY: rz80-sweep
 
 # RZ80's Verilator harnesses (tests/rz80/verilator/sim_<name>.cpp) on src/rz80/

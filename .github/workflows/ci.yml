@@ -2,12 +2,14 @@ name: CI
 
 # The chip and its tests (tests/README.md).
 #   every push:   RZ80's files in step with rz80/; RZ80's iverilog tests of the
-#                 RTL; the pin sweep against perfectz80's recorded traces;
+#                 RTL; the trace programs, pin scenarios and the pin sweep
+#                 against perfectz80's recorded traces;
 #                 Verilator: z80test, the BASICs, 14 tests of ZEXALL; the chip:
 #                 cocotb on the RTL, RTL-to-GDS, sign-off, cocotb on the
 #                 gate-level netlist, wafer.space's precheck, the NMOS pin timing
 #   main, nightly and on demand: all of ZEXDOC and ZEXALL (Verilator), in parts
-#                 that each fit a job
+#                 that each fit a job; nightly and on demand, the pin sweep's
+#                 opcodes_reset group
 
 on:
   push:
@@ -48,6 +50,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends iverilog python3
       - name: Elaboration, bus controls, FUSE with the die's values, the X / Y corpus
         run: make rz80-elab rz80-bus rz80-fuse rz80-xyflags
+      - name: Trace programs and pin scenarios vs perfectz80's recorded traces
+        run: make rz80-traces
 
   sweep:
     name: Pin sweep against perfectz80 (iverilog) ${{ matrix.shard }}/4
@@ -65,14 +69,19 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends iverilog python3
       - name: Every opcode, timing class and pin event, half-cycle by half-cycle
         run: make rz80-sweep SWEEP_SHARD=${{ matrix.shard }}/4
-      - name: Upload the report and any differences
+      # RESET at every half-cycle of every opcode: 27,768 cases, about 10 more
+      # minutes a shard; nightly, as RZ80 runs it
+      - name: Group opcodes_reset
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: make rz80-sweep SWEEP_GROUPS=opcodes_reset SWEEP_SHARD=${{ matrix.shard }}/4
+      - name: Upload the reports and any differences
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: sweep-${{ matrix.shard }}
           path: |
-            build/rz80/event_sweep/report.md
-            build/rz80/event_sweep/diff/
+            build/rz80/event_sweep_*/report.md
+            build/rz80/event_sweep_*/diff/
           if-no-files-found: ignore
           retention-days: 14
 
@@ -243,6 +252,9 @@ jobs:
       - name: Whole programs on the gate-level netlist (cocotb)
         if: success() || failure()
         run: nix develop --command make sim-system-gl
+      - name: Trace programs and pin scenarios vs perfectz80's recorded traces, on the gate-level netlist
+        if: success() || failure()
+        run: nix develop --command make rz80-traces-gl
       - name: The pins against the NMOS Z80's datasheet at 4 MHz (OpenSTA, every corner)
         if: success() || failure()
         run: nix develop --command make pin-timing

@@ -5,7 +5,7 @@ submodule, [https://github.com/rejunity/z80-from-schematics](https://github.com/
 
 | | commit |
 |---|---|
-| main (the submodule) | [`f88c75e`](https://github.com/rejunity/z80-from-schematics/commit/f88c75e098c00ae95572647130dbad023463088c) (2026-10-25 Merge xy-flags: Q, F and WZ against the die; X / Y against every oracle) |
+| main (the submodule) | [`193230c`](https://github.com/rejunity/z80-from-schematics/commit/193230c3b8eea06b65b7e1c79734a599418c23ad) (2026-10-26 docs: the pin-sweep recordings' verification takes 7-11 min a shard) |
 | asic-gf180mcu (the chip flows' glue) | [`c88cc6b`](https://github.com/rejunity/z80-from-schematics/commit/c88cc6bcee12d43ca3031d0ff86c374c7ee992f2) |
 
 | ws3 | RZ80 | from | |
@@ -25,9 +25,12 @@ submodule, [https://github.com/rejunity/z80-from-schematics](https://github.com/
 | `tests/rz80/iverilog/tb_wait_write.v` | `tests/iverilog/tb_wait_write.v` | main | copied |
 | `tests/rz80/iverilog/tb_int_ack.v` | `tests/iverilog/tb_int_ack.v` | main | copied |
 | `tests/rz80/iverilog/tb_event_sweep.v` | `tests/iverilog/tb_event_sweep.v` | main | copied |
+| `tests/rz80/iverilog/tb_z80.v` | `tests/iverilog/tb_z80.v` | main | copied |
+| `tests/rz80/iverilog/tb_z80_netlist.v` | `tests/iverilog/tb_z80_netlist.v` | main | copied |
 | `tests/rz80/scripts/compare_fuse_rtl.py` | `scripts/compare_fuse_rtl.py` | main | patched |
 | `tests/rz80/scripts/gen_fuse_tb.py` | `scripts/gen_fuse_tb.py` | main | patched |
-| `tests/rz80/scripts/event_sweep.py` | `scripts/event_sweep.py` | main | patched |
+| `tests/rz80/scripts/event_sweep.py` | `scripts/event_sweep.py` | main | copied |
+| `tests/rz80/scripts/compare_signal_timing.py` | `scripts/compare_signal_timing.py` | main | copied |
 | `tests/rz80/verilator/sim_zex.cpp` | `tests/verilator/sim_zex.cpp` | main | copied |
 | `tests/rz80/verilator/sim_z80test.cpp` | `tests/verilator/sim_z80test.cpp` | main | copied |
 | `tests/rz80/verilator/sim_basic.cpp` | `tests/verilator/sim_basic.cpp` | main | copied |
@@ -50,6 +53,9 @@ submodule, [https://github.com/rejunity/z80-from-schematics](https://github.com/
 
 "patched" files differ from RZ80's by the exact text replacements listed
 in `scripts/sync_rz80.py`: paths (their data from the submodule, the RTL
-from `src/rz80/`, builds in `build/rz80/`), and perfectz80 only as RZ80
-recorded it. The C model, the perfectz80 simulator and the reference
-emulators are not part of ws3.
+from `src/rz80/`, builds in `build/rz80/`) and chip_top's ports. The rest
+are RZ80's own; the Makefile points them at ws3's builds and at the
+submodule's data through their environment overrides. perfectz80's side of
+every comparison is RZ80's recordings (`--recorded`, `--recorded-only`): the
+C model, the perfectz80 simulator and the reference emulators are not part
+of ws3.

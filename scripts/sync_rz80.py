@@ -68,27 +68,6 @@ GEN_FUSE_TB = [
      'TB_PATH  = os.environ.get("FUSE_TB")       or os.path.join(BUILD, "tb_fuse.v")'),
 ]
 
-EVENT_SWEEP = [
-    PY_ROOT,
-    ('TB_VVP = os.path.join(ROOT, "build", "tb_event_sweep.vvp")',
-     'TB_VVP = os.path.join(BUILD, "tb_event_sweep.vvp")'),
-    ('OUT = os.path.join(ROOT, "build", "event_sweep")',
-     'OUT = os.path.join(BUILD, "event_sweep")'),
-    # perfectz80 only as RZ80 recorded it: no live runs, no C model
-    ('    for exe in (TB_VVP, PZ80) + ((CMODEL,) if a.c_model else ()):',
-     '    if a.c_model or a.record or a.no_cache or a.verify_recorded:\n'
-     '        sys.exit("ws3 compares the RTL with the perfectz80 traces RZ80 recorded "\n'
-     '                 "(rz80/tests/event_sweep/pz80/) only: no C model, no live perfectz80")\n'
-     '    for exe in (TB_VVP,):'),
-    ('    hits = sum(1 for c in pz_cases.values() if cache_key(c, hid) in cache)\n',
-     '    hits = sum(1 for c in pz_cases.values() if cache_key(c, hid) in cache)\n'
-     '    if hits < len(pz_cases):\n'
-     '        sys.exit(f"{len(pz_cases) - hits} of {len(pz_cases)} cases have no recorded perfectz80 "\n'
-     '                 f"trace in rz80/tests/event_sweep/pz80/: record them in RZ80 first")\n'),
-    ('report: {os.path.relpath(os.path.join(OUT, \'report.md\'), ROOT)}',
-     'report: {os.path.relpath(os.path.join(OUT, \'report.md\'), WS3)}'),
-]
-
 RUN_BASIC = [
     ('ROOT="$(cd "$(dirname "$0")/../.." && pwd)"',
      '# ws3 (scripts/sync_rz80.py): the ROMs and scripts from the rz80/ submodule,\n'
@@ -201,6 +180,9 @@ PADS_SPICE = [
     ('LIBRELANE = "github:librelane/librelane/3.0.14"                             # Magic 8.3.623',
      '# ws3 (scripts/sync_rz80.py): Magic from the template\'s LibreLane, as its PDK\n'
      'LIBRELANE = "github:librelane/librelane/99148a9c1e648cdfdb9d7b772481af32e0dfbe8b"'),
+    # the template's PDK (make clone-pdk: --pdk-root gf180mcu/ciel)
+    ('"root": "gf180mcu/versions/54435919abffb937387ec956209f9cf5fd2dfbee/gf180mcuD",',
+     '"root": "gf180mcu/versions/792ef67037d74c8c51811eab3ce23cf793491296/gf180mcuD",   # ws3: the template\'s'),
 ]
 
 # (source, path in RZ80, path in ws3, patches)
@@ -213,10 +195,17 @@ FILES = [("main", "rtl/" + f, "src/rz80/" + f, []) for f in RTL] + [
     ("main", "tests/iverilog/tb_wait_write.v",   "tests/rz80/iverilog/tb_wait_write.v", []),
     ("main", "tests/iverilog/tb_int_ack.v",      "tests/rz80/iverilog/tb_int_ack.v", []),
     ("main", "tests/iverilog/tb_event_sweep.v",  "tests/rz80/iverilog/tb_event_sweep.v", []),
+    ("main", "tests/iverilog/tb_z80.v",          "tests/rz80/iverilog/tb_z80.v", []),
+    ("main", "tests/iverilog/tb_z80_netlist.v",  "tests/rz80/iverilog/tb_z80_netlist.v", []),
     # their drivers: FUSE (and the X / Y corpus) and the pin sweep
     ("main", "scripts/compare_fuse_rtl.py", "tests/rz80/scripts/compare_fuse_rtl.py", COMPARE_FUSE_RTL),
     ("main", "scripts/gen_fuse_tb.py",      "tests/rz80/scripts/gen_fuse_tb.py", GEN_FUSE_TB),
-    ("main", "scripts/event_sweep.py",      "tests/rz80/scripts/event_sweep.py", EVENT_SWEEP),
+    # the pin sweep and the trace programs against perfectz80's recordings: RZ80's
+    # scripts as they are, pointed at ws3's builds and the submodule's
+    # recordings by their environment overrides (EVENT_SWEEP_TB_VVP,
+    # EVENT_SWEEP_PZ80; TB_VVP, TB_NETLIST_VVP, PZ80_TRACES)
+    ("main", "scripts/event_sweep.py",      "tests/rz80/scripts/event_sweep.py", []),
+    ("main", "scripts/compare_signal_timing.py", "tests/rz80/scripts/compare_signal_timing.py", []),
     # Verilator harnesses of the long suites, and the ZEX test splitter
     ("main", "tests/verilator/sim_zex.cpp",     "tests/rz80/verilator/sim_zex.cpp", []),
     ("main", "tests/verilator/sim_z80test.cpp", "tests/rz80/verilator/sim_z80test.cpp", []),
@@ -295,9 +284,12 @@ submodule, [{REPO}]({REPO}):
 
 "patched" files differ from RZ80's by the exact text replacements listed
 in `scripts/sync_rz80.py`: paths (their data from the submodule, the RTL
-from `src/rz80/`, builds in `build/rz80/`), and perfectz80 only as RZ80
-recorded it. The C model, the perfectz80 simulator and the reference
-emulators are not part of ws3.
+from `src/rz80/`, builds in `build/rz80/`) and chip_top's ports. The rest
+are RZ80's own; the Makefile points them at ws3's builds and at the
+submodule's data through their environment overrides. perfectz80's side of
+every comparison is RZ80's recordings (`--recorded`, `--recorded-only`): the
+C model, the perfectz80 simulator and the reference emulators are not part
+of ws3.
 """.encode()
     out["src/rz80/README.md"] = f"""# RZ80
 
