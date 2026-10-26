@@ -111,6 +111,24 @@ PAD_LIBS:
   "*_ff_n40C_5v50": [dir::../spice/pads/gf180mcu/gf180mcu_fd_io__ff_n40C_5v50.lib]
   "*_ss_125C_4v50": [dir::../spice/pads/gf180mcu/gf180mcu_fd_io__ss_125C_4v50.lib]
 
+# The standard cells: the PDK's libraries with the flow's limits on every pin
+# -- each pin's max_transition / max_capacitance the tighter of the library's
+# and the PDK's MAX_TRANSITION_CONSTRAINT (3 ns) / MAX_CAPACITANCE_CONSTRAINT
+# (0.2 pF), default_max_fanout its MAX_FANOUT_CONSTRAINT (10) -- written by
+# scripts/cell_limits.py into build/cell_libs/ (`make cell-libs`, which the
+# flow targets run first). On the design (LibreLane's default SDC) OpenSTA
+# would hold every pin to them, the pads' board side too, which drives and
+# takes the datasheet's 100 pF and slow edges: in the cells' libraries they
+# hold the core, and the pads keep their own range (PAD_LIBS). The antenna
+# diode's pin counts no fanout there: the router adds diodes after the last
+# repair, and a diode is a junction, not a gate input (two on the data pads'
+# outputs, which allow one load, counted as a second; their capacitance still
+# counts). The tables are the PDK's.
+CELL_LIBS:
+  "*_tt_025C_5v00": [dir::../build/cell_libs/gf180mcu_fd_sc_mcu7t5v0__tt_025C_5v00.lib]
+  "*_ff_n40C_5v50": [dir::../build/cell_libs/gf180mcu_fd_sc_mcu7t5v0__ff_n40C_5v50.lib]
+  "*_ss_125C_4v50": [dir::../build/cell_libs/gf180mcu_fd_sc_mcu7t5v0__ss_125C_4v50.lib]
+
 # Increase density for more
 # logic on your die
 PL_TARGET_DENSITY_PCT: 20 # Z80: 20, template: 35
