@@ -15,11 +15,11 @@ PDK_COMMIT ?= 792ef67037d74c8c51811eab3ce23cf793491296
 # gf180mcu_osu_sc_gp9t3v3 (broken)
 # gf180mcu_osu_sc_gp12t3v3 (broken)
 
-# The Z80 chip: the 7-track 5 V library (the template's default)
+# The Z80 chip, branch mcu9t5v0: the 9-track 5 V library (main: the 7-track one, the template's default)
 ifeq ($(SCL),default)
-    SCL = gf180mcu_fd_sc_mcu7t5v0
+    SCL = gf180mcu_fd_sc_mcu9t5v0
 endif
-SCL ?= gf180mcu_fd_sc_mcu7t5v0
+SCL ?= gf180mcu_fd_sc_mcu9t5v0
 
 # Available PAD libraries:
 # gf180mcu_fd_io

@@ -1,4 +1,4 @@
-# The standard cell library is the Makefile's SCL (gf180mcu_fd_sc_mcu7t5v0 for this chip),
+# The standard cell library is the Makefile's SCL (gf180mcu_fd_sc_mcu9t5v0 on this branch),
 # passed to LibreLane with --scl.
 
 # Floorplanning

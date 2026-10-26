@@ -71,7 +71,7 @@ def runner(tests):
     from cocotb_tools.runner import get_runner
     pdk_root = Path(os.getenv("PDK_ROOT", WS3 / "gf180mcu"))
     pdk = os.getenv("PDK", "gf180mcuD")
-    scl = os.getenv("SCL", "gf180mcu_fd_sc_mcu7t5v0")
+    scl = os.getenv("SCL", "gf180mcu_fd_sc_mcu9t5v0")
     pad = os.getenv("PAD", "gf180mcu_fd_io")
     libs = pdk_root / pdk / "libs.ref"
     defines = {"SLOT_0P5X0P5": True, f"PDK_{pdk}": True, f"SCL_{scl}": True, f"PAD_{pad}": True,

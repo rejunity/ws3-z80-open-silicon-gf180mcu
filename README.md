@@ -1,5 +1,9 @@
 # A Z80 for wafer.space Run 3: RZ80 on GF180MCU, quarter slot
 
+> **Branch `mcu9t5v0`: the 9-track comparison of `main`.** The chip is
+> main's in every respect but the standard cells, `gf180mcu_fd_sc_mcu9t5v0`
+> here against main's 7-track `gf180mcu_fd_sc_mcu7t5v0`.
+
 This is a Zilog Z80 for fabrication in GlobalFoundries' 180 nm process
 (GF180MCU, 5 V) on [wafer.space](https://wafer.space)'s Run 3, in a quarter
 slot (0.5 × 0.5: a 1.94 × 2.53 mm die, 48 signal pads and 8 power pads).
@@ -23,7 +27,7 @@ quarter slot; the project is built on wafer.space's
 |---|---|
 | CPU | RZ80, `src/rz80/` = RZ80 `rtl/` at [`f88c75e`](https://github.com/rejunity/z80-from-schematics/commit/f88c75e098c00ae95572647130dbad023463088c) (CERN-OHL-W-2.0) |
 | Process | GF180MCU (`gf180mcuD`), 5 V, 5 metal layers |
-| Cells | `gf180mcu_fd_sc_mcu7t5v0`, the 7-track 5 V library |
+| Cells | `gf180mcu_fd_sc_mcu9t5v0`, the 9-track 5 V library (main: `gf180mcu_fd_sc_mcu7t5v0`, 7-track) |
 | Slot | `0p5x0p5`: die 1936 × 2531 µm, core 1052 × 1647 µm |
 | Bus pads | `gf180mcu_fd_io__bi_t` at 4 mA with slow slew on all 32 bus pins: the library's weakest drive, near the NMOS Z80's (it sinks 2 mA at 0.4 V) |
 | Input pads | `in_s` (Schmitt trigger) for CLK and RESET, as on RZ80's own GF180 chip; `in_c` (CMOS) for WAIT, INT, NMI, BUSRQ; the 10 unused inputs pulled down |

@@ -105,7 +105,7 @@ GRT_ALLOW_CONGESTION: true
 # RZ80 run 40 ns of setup and stopped it (RSZ-2008 on bidir[5].pad/Y). RZ80's
 # own GF180 flows exclude them for the same reason.
 EXTRA_EXCLUDED_CELLS:
-- "gf180mcu_fd_sc_mcu7t5v0__dly*"
+- "gf180mcu_fd_sc_mcu9t5v0__dly*"
 
 # No buffering in the post-CTS setup repair: with the setup margin below, it
 # goes on to rebuffer the nets the data bus pads drive into the core, and this
