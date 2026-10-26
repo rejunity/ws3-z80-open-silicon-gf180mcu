@@ -209,7 +209,7 @@ def prepare_netlist(src, dst):
 # The core clock's root crosses 50 % this long after the CLK pin crosses the
 # pad's threshold, rising / falling (ns; probed in the fine runs; the leaves
 # follow 0.4-1.1 ns later).
-CLK_ROOT = {"tt": (2.9, 2.1), "ss": (4.3, 3.5), "ff": (2.1, 1.4)}
+CLK_ROOT = {"tt": (3.9, 3.1), "ss": (5.3, 4.5), "ff": (3.1, 2.4)}   # ws3: RZ80's + 1 ns
 TMAX = 10.0       # ns: the longest step, where the chip has settled
 
 

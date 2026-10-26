@@ -163,6 +163,11 @@ CHIP_SPICE = [
      '            return [by_port[p] for p in t[2:]]\n'
      '    sys.exit("chip: no .subckt chip_top in the extracted netlist")\n'),
     ("load z80_chip\n", "load chip_top\n"),
+    # the breakpoints over each clock edge, 1 ns longer: ws3's flat clock tree
+    # reaches its flip-flops 1.4-2.1 ns after clk_pad/Y (tt, the flow's STA),
+    # up to a nanosecond later than RZ80's leaves follow their root
+    ('CLK_ROOT = {"tt": (2.9, 2.1), "ss": (4.3, 3.5), "ff": (2.1, 1.4)}',
+     'CLK_ROOT = {"tt": (3.9, 3.1), "ss": (5.3, 4.5), "ff": (3.1, 2.4)}   # ws3: RZ80\'s + 1 ns'),
     ('    gds = os.path.abspath(gds or os.path.join(run, "final", "gds", "z80_chip.gds"))',
      '    gds = os.path.abspath(gds or os.path.join(run, "final", "gds", "chip_top.gds"))'),
     ('    rtl = os.path.join(ROOT, "rtl")\n', '    rtl = os.path.join(ROOT, "src", "rz80")\n'),
