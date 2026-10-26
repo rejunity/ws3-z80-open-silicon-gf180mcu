@@ -1,61 +1,170 @@
 name: CI
 
-# Events that trigger the workflow
+# The chip and its tests (tests/README.md).
+#   every push:   RZ80's files in step with rz80/; RZ80's iverilog tests of the
+#                 RTL; the pin sweep against perfectz80's recorded traces;
+#                 Verilator: z80test, the BASICs, 14 tests of ZEXALL; the chip:
+#                 cocotb on the RTL, RTL-to-GDS, sign-off, cocotb on the
+#                 gate-level netlist, wafer.space's precheck, the NMOS pin timing
+#   main, nightly and on demand: all of ZEXDOC and ZEXALL (Verilator), in parts
+#                 that each fit a job
+
 on:
-  # Runs on all pushes to branches
   push:
     branches:
       - "**"
     tags-ignore:
       - "**"
-  # Runs on all PRs
   pull_request:
-  # Manual Dispatch
+  schedule:
+    - cron: '0 3 * * *'          # 03:00 UTC
   workflow_dispatch:
 
 concurrency:
-  # Behavior:
-  # - Group all pull requests: latest push cancels previous ones
-  # - Group all branches:
-  #   - If main/version- branches: run serially
-  #   - Else, latest push cancels previous ones
-  group: >
-    ${{
-      (github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number)) ||
-      (github.event_name == 'push' && format('branch-{0}', github.ref_name)) ||
-      ''
-    }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' || !(startsWith(github.ref_name, 'version-') || github.ref_name == 'main' || github.ref_name == 'dev') }}
+  # the latest push cancels a run still going on the same branch or PR
+  group: ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}-${{ github.event_name == 'schedule' && 'nightly' || 'push' }}
+  cancel-in-progress: true
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
+  sync:
+    name: RZ80's files in step with rz80/
+    runs-on: ubuntu-24.04
     steps:
-      - name: Define the Matrix
-        id: export-matrix
-        if: 
-        run: |
-          if ${{ github.repository == 'wafer-space/gf180mcu-project-template' }}; then
-            echo "matrix={\"slot\":['1x1', '0p5x1', '1x0p5', '0p5x0p5'],\"domain\":['5v','3v3'],\"include\": [{\"pad\": 'gf180mcu_fd_io', \"domain\": '5v'},{\"scl\": 'gf180mcu_fd_sc_mcu7t5v0', \"domain\": '5v'},{\"sram\": 'gf180mcu_fd_ip_sram', \"domain\": '5v'},{\"pad\": 'gf180mcu_ocd_io', \"domain\": '3v3'},{\"scl\": 'gf180mcu_as_sc_mcu7t3v3', \"domain\": '3v3'},{\"sram\": 'gf180mcu_ocd_ip_sram', \"domain\": '3v3'}]}" >> $GITHUB_OUTPUT
-          else
-            echo "matrix={\"slot\":['default'],\"domain\":['default'],\"sram\":['default'],\"pad\":['default'],\"scl\":['default']}" >> $GITHUB_OUTPUT
-          fi
-    outputs:
-      matrix: ${{ steps.export-matrix.outputs.matrix }}
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: scripts/sync_rz80.py --check
+        run: make sync-check
+
+  rtl:
+    name: RZ80's RTL tests (iverilog)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install iverilog
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends iverilog python3
+      - name: Elaboration, bus controls, FUSE with the die's values, the X / Y corpus
+        run: make rz80-elab rz80-bus rz80-fuse rz80-xyflags
+
+  sweep:
+    name: Pin sweep against perfectz80 (iverilog) ${{ matrix.shard }}/4
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install iverilog
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends iverilog python3
+      - name: Every opcode, timing class and pin event, half-cycle by half-cycle
+        run: make rz80-sweep SWEEP_SHARD=${{ matrix.shard }}/4
+      - name: Upload the report and any differences
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sweep-${{ matrix.shard }}
+          path: |
+            build/rz80/event_sweep/report.md
+            build/rz80/event_sweep/diff/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  z80test:
+    name: z80test ${{ matrix.variant }} (Verilator)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [z80doc, z80flags, z80memptr, z80full, z80ccf]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install Verilator
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential python3 verilator
+      - name: Patrik Rak's ${{ matrix.variant }} through the RTL; any failed test fails
+        run: make rz80-z80test Z80TEST=${{ matrix.variant }}
+
+  basic:
+    name: NASCOM BASIC and Tiny BASIC (Verilator)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install Verilator
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential python3 verilator
+      - name: The canned BASIC scripts through the RTL
+        run: make rz80-basic
+
+  zexall-subset:
+    name: ZEXALL, 14 of its tests (Verilator)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install Verilator
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential python3 verilator
+      # RZ80's subset: block moves and compares, DDCB BIT / SET / RES / shifts,
+      # RRD / RLD, NEG, DAA / CPL / SCF / CCF, 16-bit ADC / SBC
+      - name: ZEXALL tests 12 0 56 57 52 53 54 55 10 11 8 27 59 62
+        run: make rz80-zex ZEX=zexall ZEX_TESTS="12 0 56 57 52 53 54 55 10 11 8 27 59 62"
+
+  zex:
+    name: ${{ matrix.zex }} part ${{ matrix.part }} (Verilator)
+    if: github.ref == 'refs/heads/main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      # Each of ZEXDOC and ZEXALL runs 5.76 G instructions, 93.5 G clock phases
+      # (the same in both: only the flag masks differ); Verilator on a GitHub
+      # runner simulates 2.5-3.4 M phases a second (RZ80's 14-test job), so
+      # all of one would take 8-10 hours. The parts are balanced by each test's
+      # length: test 5, aluop a,<b,c,d,e,h,l,(hl),a>, is 40.0 G phases
+      # alone (3.3-4.5 hours), test 6 20.3 G, the other two 16.6 G each.
+      matrix:
+        include:
+          - {zex: zexdoc, part: 1, tests: "5"}
+          - {zex: zexdoc, part: 2, tests: "6"}
+          - {zex: zexdoc, part: 3, tests: "1 4 7 8 10 14 17 18 20 23 25 26 28 30 32 33 35 37 39 42 43 44 45 49 52 56 57 59 61 64 65 66"}
+          - {zex: zexdoc, part: 4, tests: "0 2 3 9 11 12 13 15 16 19 21 22 24 27 29 31 34 36 38 40 41 46 47 48 50 51 53 54 55 58 60 62 63"}
+          - {zex: zexall, part: 1, tests: "5"}
+          - {zex: zexall, part: 2, tests: "6"}
+          - {zex: zexall, part: 3, tests: "1 4 7 8 10 14 17 18 20 23 25 26 28 30 32 33 35 37 39 42 43 44 45 49 52 56 57 59 61 64 65 66"}
+          - {zex: zexall, part: 4, tests: "0 2 3 9 11 12 13 15 16 19 21 22 24 27 29 31 34 36 38 40 41 46 47 48 50 51 53 54 55 58 60 62 63"}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install Verilator
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential python3 verilator
+      - name: ${{ matrix.zex }} tests ${{ matrix.tests }}
+        run: make rz80-zex ZEX=${{ matrix.zex }} ZEX_TESTS="${{ matrix.tests }}"
+      - name: Upload the log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.zex }}-part-${{ matrix.part }}
+          path: build/rz80/zex/*.log
+          retention-days: 14
+
   chip:
     runs-on: ubuntu-24.04
-    name: Build the Chip
-    needs:
-      - prepare
-    strategy:
-      matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
+    name: The chip (RTL-to-GDS, sign-off, gate level)
+    timeout-minutes: 350
     steps:
-      - name: Set variables
-        run: |
-          echo "SLOT=${{ matrix.slot }}" >> $GITHUB_ENV
-          echo "SRAM=${{ matrix.sram }}" >> $GITHUB_ENV
-          echo "PAD=${{ matrix.pad }}" >> $GITHUB_ENV
-          echo "SCL=${{ matrix.scl }}" >> $GITHUB_ENV
       - name: Maximize build space
         uses: AdityaGarg8/remove-unwanted-software@v5
         with:
@@ -66,7 +175,7 @@ jobs:
           remove-docker-images: "true"
       - uses: actions/checkout@v6
         with:
-           submodules: recursive
+          submodules: recursive
       - name: Setup Nix
         uses: ./.github/actions/setup_nix
         with:
@@ -77,48 +186,66 @@ jobs:
         uses: ./.github/actions/build_nix
         with:
           nix_system: x86_64-linux
-      - name: Check Nix
-        run: |
-          sudo du -hs /nix/store/* | sort -h | tail -n 10
-          sudo tree /nix/store/*-librelane || true
       - name: Clone the PDK
-        run: |
-          nix develop --command make clone-pdk
-      - name: Run RTL simulation
+        run: nix develop --command make clone-pdk
+      - name: cocotb on the RTL (the chip's pads, signs of life, HALT to INT, the KC 85 capture)
         run: |
           nix develop --command make sim
           # cocotb also returns 0 upon failure
-          # check the simulation results
           ! grep failure cocotb/sim_build/results.xml
+      - name: Whole programs on the RTL (cocotb)
+        run: nix develop --command make sim-system
       - name: Implement the Chip
+        run: nix develop --command make librelane-condensed
+      - name: Sign-off (DRC, LVS, antenna, XOR, timing)
         if: success() || failure()
         run: |
-          nix develop --command make librelane-condensed
-      - name: Create summary
-        if: success() || failure()
-        run: |
+          rc=0
+          nix develop --command python3 tests/rz80/scripts/summary.py "$(ls -td librelane/runs/RUN_* | head -1)" > signoff.txt || rc=$?
+          cat signoff.txt
+          { echo '# Sign-off'; echo '```'; cat signoff.txt; echo '```'; } >> $GITHUB_STEP_SUMMARY
           echo "# Manufacturability" >> $GITHUB_STEP_SUMMARY
           cat librelane/runs/*/*-misc-reportmanufacturability/manufacturability.rpt >> $GITHUB_STEP_SUMMARY
+          exit $rc
       - name: Print the hash
         if: success() || failure()
-        run: |
-          shasum final/gds/*
+        run: shasum final/gds/*
       - name: Upload GDS
         if: success() || failure()
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.slot }}_${{ matrix.domain }}_gds
+          name: chip_gds
           path: final/gds/*
+      - name: Upload the views (netlists, parasitics, GDS) for the transistor-level runs
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: chip_final
+          path: |
+            final/gds/
+            final/nl/
+            final/pnl/
+            final/spef/
+            final/metrics.json
+          retention-days: 30
       - name: Upload image
         if: success() || failure()
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.slot }}_${{ matrix.domain }}_image
+          name: chip_image
           path: final/render/*.png
-      - name: Run GL simulation
+      - name: cocotb on the gate-level netlist
         if: success() || failure()
         run: |
           nix develop --command make sim-gl
           # cocotb also returns 0 upon failure
-          # check the simulation results
           ! grep failure cocotb/sim_build/results.xml
+      - name: Whole programs on the gate-level netlist (cocotb)
+        if: success() || failure()
+        run: nix develop --command make sim-system-gl
+      - name: The pins against the NMOS Z80's datasheet at 4 MHz (OpenSTA, every corner)
+        if: success() || failure()
+        run: nix develop --command make pin-timing
+      - name: wafer.space precheck
+        if: success() || failure()
+        run: nix develop --command make precheck

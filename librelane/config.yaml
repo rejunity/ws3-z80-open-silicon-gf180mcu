@@ -32,6 +32,18 @@ DESIGN_NAME: chip_top
 VERILOG_FILES:
 - dir::../src/chip_top.sv
 - dir::../src/chip_core.sv
+# RZ80, the Z80 core: rtl/ of https://github.com/rejunity/z80-from-schematics,
+# unchanged (CERN-OHL-W-2.0); z80_top is the chip-level wrapper
+- dir::../src/rz80/z80_top.v
+- dir::../src/rz80/z80_core.v
+- dir::../src/rz80/z80_timing.v
+- dir::../src/rz80/z80_pla.v
+- dir::../src/rz80/z80_execute.v
+- dir::../src/rz80/z80_regfile.v
+- dir::../src/rz80/z80_addr.v
+- dir::../src/rz80/z80_alu.v
+VERILOG_INCLUDE_DIRS:
+- dir::../src/rz80
 
 # Enable plugin for better SystemVerilog support
 # USE_SLANG: True
@@ -51,29 +63,77 @@ VDD_NETS:
 GND_NETS:
 - VSS
 
-# We need to add gf180mcu_fd_io__bi_24t
+# We need to add gf180mcu_fd_io__bi_t
 # due to the unused Y output for output only pads
 IGNORE_DISCONNECTED_MODULES:
-- gf180mcu_fd_io__bi_24t
+- gf180mcu_fd_io__bi_t
 - gf180mcu_ws_ip__qrcode_id
 - gf180mcu_ws_ip__shuttle_id
 - gf180mcu_ws_ip__project_id
 - gf180mcu_ws_ip__logo
 - gf180mcu_ws_ip__marker
 
+# depending on SLOT configuration
+# PAD_SOUTH, PAD_EAST, PAD_NORTH, PAD_WEST are defined in one of the:
+# - slot_1x1.yaml
+# - slot_0p5x1.yaml
+# - slot_0p5x0p5.yaml
+# (slot_1x0p5.yaml has no Z80 pad mapping)
+
 # Clock
 CLOCK_PORT: clk_PAD
 CLOCK_NET: clk_pad/Y
 CLOCK_PERIOD: 40 # 25 MHz
 
-# Overfix hold violations
-PL_RESIZER_HOLD_SLACK_MARGIN: 0.35
-GRT_RESIZER_HOLD_SLACK_MARGIN: 0.3
+# The pins are timed against the NMOS Z80's datasheet instead (timing/: the
+# Zilog PS0178 AC characteristics at 4 MHz, `make pin-timing`, every corner):
+# the bus pads are bi_t at 4 mA with slow slew, as near the NMOS part's drive
+# as the library comes, and their own 10-15 ns would not fit the template's
+# 25 MHz system budget (20 % of the period outside the chip, from pins that
+# z80_top launches on the falling edge too). Here the I/O paths are only
+# held inside the clock period, with no delay outside the chip.
+IO_DELAY_CONSTRAINT: 0 # template: 20 (% of the clock period)
 
-# Increase density for more 
+# Increase density for more
 # logic on your die
-PL_TARGET_DENSITY_PCT: 35
+PL_TARGET_DENSITY_PCT: 20 # Z80: 20, template: 35
 GRT_ALLOW_CONGESTION: true
+
+# Plain buffers, no delay cells: LibreLane's fanout and port repairs otherwise
+# pick the library's delay cells (dlyd_1, ~2 ns each at the typical corner) as
+# buffers -- a chain of 20 of them on the data bus pads' inputs cost the first
+# RZ80 run 40 ns of setup and stopped it (RSZ-2008 on bidir[5].pad/Y). RZ80's
+# own GF180 flows exclude them for the same reason.
+EXTRA_EXCLUDED_CELLS:
+- "gf180mcu_fd_sc_mcu7t5v0__dly*"
+
+# No buffering in the post-CTS setup repair: with the setup margin below, it
+# goes on to rebuffer the nets the data bus pads drive into the core, and this
+# OpenROAD stops there ([CRITICAL RSZ-2008] buffering pin bidir[n].pad/Y: wire
+# step options empty). Sizing, pin swaps and cloning still run.
+PL_RESIZER_SETUP_BUFFERING: False
+
+# Z80 project specific FIXES --------------------------------------------------
+# Fix HOLD violations
+PL_RESIZER_HOLD_SLACK_MARGIN: 0.5 # default 0.1, wafer-space template: 0.35 ns
+GRT_RESIZER_HOLD_SLACK_MARGIN: 0.5 # default 0.05, wafer-space template: 0.3 ns
+
+PL_RESIZER_HOLD_MAX_BUFFER_PCT: 100 # default 50
+GRT_RESIZER_HOLD_MAX_BUFFER_PCT: 100 # default 50
+
+# TV80-era setup margins, off for RZ80: the post-CTS repair could not reach
+# 4 ns on the paths through the data bus pads and ground on for 10+ minutes
+# with nothing gained (defaults: 0.05 / 0.025 ns)
+# PL_RESIZER_SETUP_SLACK_MARGIN: 4.0 # default 0.05 ns
+# GRT_RESIZER_SETUP_SLACK_MARGIN: 1.0 # default 0.025 ns
+
+# PL_RESIZER_ALLOW_SETUP_VIOS: True # default False
+# GRT_RESIZER_ALLOW_SETUP_VIOS: True # default False
+
+# Experimental option!
+# PL_RESIZER_FIX_HOLD_FIRST: True # default False
+# GRT_RESIZER_FIX_HOLD_FIRST: True # default False
+# -----------------------------------------------------------------------------
 
 # Allow a larger Y displacement
 PL_MAX_DISPLACEMENT_Y: 200

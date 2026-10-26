@@ -80,3 +80,25 @@ if { [info exists ::env(OPENLANE_SDC_IDEAL_CLOCKS)] && $::env(OPENLANE_SDC_IDEAL
     set_propagated_clock [all_clocks]
 }
 
+
+# The bidir pads' input enables follow the CPU's data drive: the input buffers
+# turn on when the CPU stops driving the bus, a half cycle or more before the
+# next read samples the pads. The IE -> Y arc is no path the Z80 depends on;
+# timed as a half-cycle path from z80_top's falling-edge pin former it limited
+# the clock at the slow corner for nothing.
+set ie_pins [get_pins -hierarchical */IE]
+if { [llength $ie_pins] > 0 } {
+    puts "\[INFO] False path through [llength $ie_pins] pad input enables (IE)"
+    set_false_path -through $ie_pins
+}
+
+# The pins as the NMOS Z80's datasheet has them (Zilog PS0178's AC test
+# conditions, timing/): 15 ns edges on CLK and the inputs, and every input free
+# to change right at the CLK edge that samples it (holds of 0). The template's
+# input delays are on the rising edge only; WAIT is sampled on the falling edge
+# (P18 ThWAIT(Cf) = 0), which the falling edge reaching the core late through
+# the Schmitt CLK pad and the clock tree turns into ~5 ns of hold at the pin
+# unless the resizer delays WAIT's path to match. timing/pin_timing.py
+# (make pin-timing) checks every parameter at every corner.
+set_input_transition 15 [get_ports {clk_PAD rst_n_PAD input_PAD[*] bidir_PAD[*]}]
+set_input_delay -min 0 -clock_fall -clock $clocks -add_delay [get_ports {input_PAD[0]}]

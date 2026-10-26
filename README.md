@@ -1,154 +1,141 @@
-# gf180mcu Project Template
+# A Z80 for wafer.space Run 3: RZ80 on GF180MCU, quarter slot
 
-Project template for wafer.space MPW runs using the gf180mcu PDK.
+This is a Zilog Z80 for fabrication in GlobalFoundries' 180 nm process
+(GF180MCU, 5 V) on [wafer.space](https://wafer.space)'s Run 3, in a quarter
+slot (0.5 × 0.5: a 1.94 × 2.53 mm die, 48 signal pads and 8 power pads).
 
-## Dependencies
+The CPU is **RZ80** ([rejunity/z80-from-schematics](https://github.com/rejunity/z80-from-schematics)):
+the NMOS Z80 rebuilt from the schematics of the die, register for register
+and half-cycle for half-cycle, and checked against perfectz80, the
+transistor-level netlist of the Visual Z80 die scan, at every pin on every
+half-cycle. It is the `rtl/` of that repository, copied unchanged into
+`src/rz80/` from the `rz80/` submodule. The chip around it, its pads and
+its pad mapping come from
+[ws0-z80-open-silicon-gf180mcu](https://github.com/rejunity/ws0-z80-open-silicon-gf180mcu)'s
+quarter slot; the project is built on wafer.space's
+[gf180mcu project template](https://github.com/wafer-space/gf180mcu-project-template).
 
-Too manage all dependencies, the project template includes a Nix shell with all the required tools.
-Install Nix and LibreLane by following the Nix-based installation instructions: https://librelane.readthedocs.io/en/latest/installation/nix_installation/index.html
-To activate the shell, simply run `nix-shell` in the root directory of this repository. The subsequent steps assume that you are in the Nix shell of the project template.
+<p align="center"><img width="45%" src="docs/chip_top.png"></p>
 
-## Prerequisites
+## The chip
 
-The project template uses the open-pdks gf180mcuD variant of the PDK.
-To clone the latest compatible PDK version via [Ciel](https://github.com/fossi-foundation/ciel), run `make clone-pdk`.
+| | |
+|---|---|
+| CPU | RZ80, `src/rz80/` = RZ80 `rtl/` at [`f88c75e`](https://github.com/rejunity/z80-from-schematics/commit/f88c75e098c00ae95572647130dbad023463088c) (CERN-OHL-W-2.0) |
+| Process | GF180MCU (`gf180mcuD`), 5 V, 5 metal layers |
+| Cells | `gf180mcu_fd_sc_mcu7t5v0`, the 7-track 5 V library |
+| Slot | `0p5x0p5`: die 1936 × 2531 µm, core 1052 × 1647 µm |
+| Bus pads | `gf180mcu_fd_io__bi_t` at 4 mA with slow slew on all 32 bus pins: the library's weakest drive, near the NMOS Z80's (it sinks 2 mA at 0.4 V) |
+| Input pads | `in_c` (CMOS) for RESET, WAIT, INT, NMI, BUSRQ; `in_s` (Schmitt) for CLK; the 10 unused inputs pulled down |
+| Clock | laid out for 40 ns (25 MHz); the pins are checked against the NMOS Z80's datasheet at 4 MHz |
+| Power-on | as on the Z80, none: hold RESET low for 3 clocks or more after power-up |
 
-## Implement the Design
+### Pins and pads
 
-With the Nix shell enabled, run the implementation:
+Pads are numbered counter-clockwise from the bottom left of the layout
+(`librelane/slots/slot_0p5x0p5.yaml`, which also draws them).
 
-```
-make librelane
-```
+| Pad | Pin | Pad | Pin | Pad | Pin | Pad | Pin |
+|---|---|---|---|---|---|---|---|
+| 0 | M1 | 14 | A8 | 28 | CLK | 42 | VSS |
+| 1 | RFSH | 15 | A9 | 29 | - | 43 | INT |
+| 2 | DVSS | 16 | A10 | 30 | - | 44 | NMI |
+| 3 | DVDD | 17 | A11 | 31 | D4 | 45 | HALT |
+| 4 | - | 18 | - | 32 | D3 | 46 | MREQ |
+| 5 | - | 19 | DVSS | 33 | D5 | 47 | IORQ |
+| 6 | A0 | 20 | DVDD | 34 | D6 | 48 | RD |
+| 7 | A1 | 21 | - | 35 | DVDD | 49 | WR |
+| 8 | A2 | 22 | A12 | 36 | DVSS | 50 | BUSAK |
+| 9 | A3 | 23 | A13 | 37 | D2 | 51 | WAIT |
+| 10 | A4 | 24 | A14 | 38 | D7 | 52 | - |
+| 11 | A5 | 25 | A15 | 39 | D0 | 53 | - |
+| 12 | A6 | 26 | - | 40 | D1 | 54 | BUSRQ |
+| 13 | A7 | 27 | - | 41 | VDD | 55 | RESET |
 
-You can find all output artifacts in the `librelane/runs/<timestamp>/` directory.
+`DVDD`/`DVSS` are the I/O supply and `VDD`/`VSS` the core's: the
+`gf180mcu_fd_io` library shorts the two domains, so the chip runs from one
+5 V supply, like the Z80.
 
-## View the Design
+## Results
 
-After completion, you can view the design using the OpenROAD GUI:
+A local run of `make librelane` on 2026-10-26, before the SDC held WAIT to the
+datasheet's hold at the CLK pin (CI repeats the flow on every push and prints
+its sign-off and the pin timing in the run's summary):
 
-```
-make librelane-openroad
-```
+| | |
+|---|---|
+| Logic | 10,617 cells, 241k µm² (14 % of the core), 479 flip-flops |
+| Setup slack, 40 ns | typical +8.12 ns · slow -1.73 ns (max wires -3.45) · fast +12.37 ns |
+| Hold slack | +0.31 ns (every corner positive) |
+| Fastest clock | typical ≥ 25 MHz; slow corner (125 °C, 4.5 V) about 21 MHz |
+| Sign-off | route DRC 0, Magic DRC 0, KLayout DRC 0, LVS 0, antenna 0 |
+| NMOS Z80 pin timing, 4 MHz | every parameter met at every corner but ThWAIT(Cf), WAIT's hold at CLK's falling edge (4.8-5.6 ns needed, 0 allowed): `librelane/chip_top.sdc` now constrains it, and CI checks all of them |
 
-Or using KLayout:
+Against ws0's quarter slot with RZ80 (9-track cells, 24 mA fast pads,
+pins held to the template's 25 MHz budget): about 13 % less logic area (241k against 276k µm²: the 7-track cells), and at the slow corner about 21 MHz against 23 MHz; ws0's quarter signed off at +4.9 ns at the typical corner, this one at +8.1 ns, the bus pads timed against the datasheet instead.
 
-```
-make librelane-klayout
-```
+## Tests
 
-## Verification and Simulation
+[tests/README.md](tests/README.md) lists every test, what its expectations
+come from (the die through perfectz80, or real Z80s) and where it runs:
 
-For the verification of the chip we use [cocotb](https://www.cocotb.org/). Cocotb is a Python-based testbench environment. The simulator that is used by the project template is [Icarus Verilog](https://github.com/steveicarus/iverilog).
+- **cocotb on the RTL and on the gate-level netlist, through the pads:**
+  ws0's 14 pin-level tests, RZ80's signs of life, HALT to INT acknowledge
+  against the die, every instruction of a real Z80's logic-analyser
+  capture (a KC 85/4's U880), and Cringle's prelim;
+- **iverilog on the RTL:** FUSE's tests with the die's values, the X / Y
+  flag corpus, RZ80's bus-control testbenches, and the pin sweep: every
+  opcode and pin event against perfectz80's recorded traces, half-cycle by
+  half-cycle;
+- **Verilator on the RTL:** ZEXDOC and ZEXALL in full, Patrik Rak's
+  z80test, NASCOM BASIC and Tiny BASIC;
+- **the layout:** LibreLane's sign-off, wafer.space's precheck, and OpenSTA
+  against the Z8400's AC characteristics at every corner.
 
-The testbench is located in `cocotb/chip_top_tb.py`. To run the RTL simulation, run the following command:
+Nothing may fail. CI (`.github/workflows/ci.yml`) runs all of it on every
+push, ZEXDOC and ZEXALL in full on main and nightly.
 
-```
-make sim
-```
+## Transistor level
 
-To run the GL (gate-level) simulation, run the following command:
+The whole chip, extracted from its GDS, runs a short program in ngspice at the typical, slow and fast corners: [spice/README.md](spice/README.md). The workflow is `.github/workflows/transistor.yml`, on demand; its figures go in `spice/chip/gf180mcu/`.
 
-```
-make sim-gl
-```
+## Build and test
 
-> [!NOTE]
-> You need to have the latest implementation of your design in the `final/` folder. After a run has completed without errors, the final views will be copied to `final/`.
+The template's Nix shell has every tool:
+[install Nix and LibreLane](https://librelane.readthedocs.io/en/latest/installation/nix_installation/index.html),
+check out with the submodule, and run `nix-shell` here.
 
-In both cases, a waveform file will be generated under `cocotb/sim_build/chip_top.fst`.
-You can view it using a waveform viewer, for example, [GTKWave](https://gtkwave.github.io/gtkwave/).
+    git clone --recursive https://github.com/rejunity/ws3-z80-open-silicon-gf180mcu
+    make clone-pdk           # the gf180mcuD PDK, through ciel
+    make sim                 # cocotb on the RTL (the chip's pads)
+    make sim-system          # whole programs on the RTL
+    make librelane           # RTL to GDS (final/ holds the views)
+    make sim-gl sim-system-gl   # the same on the gate-level netlist
+    make pin-timing          # the pins against the NMOS datasheet, every corner
+    make precheck            # wafer.space's precheck of final/gds/chip_top.gds
+    make rz80-elab rz80-bus rz80-fuse rz80-xyflags rz80-sweep   # iverilog
+    make rz80-z80test Z80TEST=z80full   rz80-basic   rz80-zex ZEX=zexdoc   # Verilator
 
-```
-make sim-view
-```
+`make librelane-openroad` and `make librelane-klayout` open the last run;
+`make help` lists every target.
 
-You can now update the testbench according to your design.
+### Updating RZ80
 
-## Implementing Your Own Design
+`rz80/` pins RZ80's commit; `scripts/sync_rz80.py` copies what the chip and
+its tests use (the RTL, test harnesses, timing data) into `src/rz80/`,
+`tests/rz80/`, `timing/` and `spice/`, applying the few patches it lists,
+and `--check` (CI) fails when a copy is out of step:
 
-The source files for this template can be found in the `src/` directory. `chip_top.sv` defines the top-level ports and instantiates `chip_core`, the chip ID (QR code), the marker, and the wafer.space logo. To comply with the default bonding setup, do not change the number of pads in order to keep the original bondpad positions. To ensure compatibility with the default breakout PCB, do not change any of the power or ground pads. However, you can change the type of the signal pads, e.g. to bidirectional, input-only, or analog pads. The template provides the `NUM_INPUT_PADS`, `NUM_BIDIR_PADS`, and `NUM_ANALOG_PADS` parameters for this purpose.
+    git -C rz80 fetch && git -C rz80 checkout <commit>
+    scripts/sync_rz80.py
+    git add rz80 src/rz80 tests/rz80 timing spice && git commit
 
-The actual pad positions are defined in the LibreLane configuration file under `librelane/slots/<slot>.yaml`. The variables `PAD_SOUTH`/`PAD_EAST`/`PAD_NORTH`/`PAD_WEST` determine the respective pad placement. The LibreLane configuration also allows you to customize the flow (enable or disable steps), specify the source files, set various variables for the steps, and instantiate macros. For more information about the configuration, please refer to the LibreLane documentation: https://librelane.readthedocs.io/en/latest/
+## Licensing
 
-To implement your own design, simply edit `chip_core.sv`. The `chip_core` module receives the clock and reset, as well as the signals from the pads defined in `chip_top`. As an example, a 42-bit wide counter is implemented.
+Component licensing ([LICENSE](LICENSE)): the chip, its configuration and
+tooling are Apache-2.0, as the template; RZ80 in `src/rz80/` is
+CERN-OHL-W-2.0, and a product made from this chip must display RZ80's
+Source Location ([HARDWARE_NOTICE.md](HARDWARE_NOTICE.md)); the copies of
+RZ80's test harnesses are MIT. Third-party test programs stay in the
+`rz80/` submodule under their own licenses.
 
-> [!NOTE]
-> For more comprehensive SystemVerilog support, enable the `USE_SLANG` variable in the LibreLane configuration.
-
-## Choosing a Different Slot Size
-
-The template supports the following slot sizes: `1x1`, `0p5x1`, `1x0p5`, `0p5x0p5`.
-By default, the design is implemented using the `1x1` slot definition.
-
-To select a different slot size, simply set the `SLOT` environment variable.
-This can be done when invoking a make target:
-
-```
-SLOT=0p5x0p5 make librelane
-```
-
-Alternatively, you can export the slot size:
-
-```
-export SLOT=0p5x0p5
-```
-
-You can change the slot that is selected by default in the Makefile by editing the value of `DEFAULT_SLOT`.
-
-## Selecting Different IP Libraries
-
-The project template has support for selecting libraries with the `SCL`, `PAD`, and `SRAM` environment variables. For possible values, see the sections below.
-
-For example, to build the 0p5x0p5 chip with 3v3 libraries:
-
-```
-SLOT=0p5x0p5 SCL=gf180mcu_as_sc_mcu7t3v3 PAD=gf180mcu_ocd_io SRAM=gf180mcu_ocd_ip_sram make librelane
-```
-
-The default values can be changed in the Makefile.
-
-> [!NOTE]
-> Not all of the community-created IPs have been tested yet, so support for them is experimental!
-> wafer.space is not responsible for any IP that you use on your chip.
-
-### SCL - Standard Cell Libraries
-
-| IP                       | Provider  | Voltage    | Status           | Notes                    |
-|--------------------------|-----------|------------|------------------|--------------------------|
-| gf180mcu_fd_sc_mcu7t5v0  | foundry   | 5V or 3.3V | silicon-verified | slow option, dense layout |
-| gf180mcu_fd_sc_mcu9t5v0  | foundry   | 5V or 3.3V | silicon-verified | faster than 7t variant, uses more area |
-| gf180mcu_as_sc_mcu7t3v3  | community | 3.3V       | simulation-only  | fastest available option |
-| gf180mcu_ocd_sc_rt12t3v3 | community | 3.3V       | simulation-only  | radiation-tolerant       |
-
-### PAD - I/O Pad Libraries
-
-| IP                       | Provider  | Voltage    | Status           | Notes                    |
-|--------------------------|-----------|------------|------------------|--------------------------|
-| gf180mcu_fd_io           | foundry   | 5V or 3.3V | silicon-verified | connects IO and core power domains together |
-| gf180mcu_ocd_io          | community | 5V or 3.3V | silicon-verified | keeps IO and core power domains separate, e.g. IO at 5V and core at 3.3V (DVDD >= VDD) |
-
-### SRAM - SRAM Libraries
-
-| IP                       | Provider  | Voltage    | Status           | Notes                    |
-|--------------------------|-----------|------------|------------------|--------------------------|
-| gf180mcu_fd_ip_sram      | foundry   | 5V or 3.3V | silicon-verified | 128, 256 and 512 bytes   |
-| gf180mcu_ocd_ip_sram     | community | 3.3V       | partially silicon-verified | smaller area, 64, 128, 256, 512 and 1024 bytes |
-
-## Building a Standalone Padring for Analog Design
-
-To build just the padring without any standard cell rows, digital routing or filler cells, run the following command:
-
-```
-make librelane-padring
-```
-
-It is also possible to build the padring for other slot sizes:
-
-```
-SLOT=0p5x0p5 make librelane-padring
-```
-
-## Precheck
-
-To check whether your design is suitable for manufacturing, run the [gf180mcu-precheck](https://github.com/wafer-space/gf180mcu-precheck) with your layout.
