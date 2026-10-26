@@ -26,10 +26,11 @@ Nothing is allowed to fail.
 | NASCOM BASIC 4.7 and Tiny BASIC, canned scripts (`make rz80-basic`) | the scripts' expected output | Verilator | RTL | every push |
 | ZEXALL, 14 of its tests (`make rz80-zex ZEX=zexall ZEX_TESTS=...`) | real Z80s (the CRCs in the program) | Verilator | RTL | every push |
 | ZEXDOC and ZEXALL, all 67 tests each, in parts (`make rz80-zex`) | real Z80s | Verilator | RTL | main, nightly |
-| Sign-off: route / Magic / KLayout DRC, LVS, antenna, XOR, hold at every corner, setup at the typical one (`tests/rz80/scripts/summary.py`) | LibreLane | LibreLane | layout | every push |
-| The pins against the NMOS Z80's datasheet at 4 MHz, every corner (`make pin-timing`) | Zilog PS0178 (`timing/z8400_nmos.json`) | OpenSTA | layout | every push |
+| Sign-off: route / Magic / KLayout DRC, LVS, antenna, XOR, setup and hold at every corner, against the NMOS Z80's datasheet on the pins (`timing/chip_top_nmos.sdc`) and 50 ns in the core (`tests/rz80/scripts/summary.py`) | LibreLane | LibreLane | layout | every push |
+| The pins against the NMOS Z80's datasheet at 4, 6 and 8 MHz, each at its own clock, every corner: all 47 parameters, the pulse widths and pin-to-pin separations too (`make pin-timing`) | Zilog PS0178 (`timing/z8400_nmos.json`) | OpenSTA | layout | every push |
 | wafer.space precheck (`make precheck`) | wafer.space | LibreLane / KLayout / Magic | layout | every push |
 | The copies of RZ80's files (`make sync-check`) | `rz80/` | Python | - | every push |
+| The flow's SDC is what `timing/pin_timing.py --write-sdc` writes (`make sdc-check`) | the datasheet (`timing/`) | Python | - | every push |
 | Every power and ground pad as in the wafer.space template, in every slot (`make check-power-pads`) | the template at `d99f6e1`, which ws3 was made from | Python | - | every push |
 | The same against the template's current main (`make check-power-pads-upstream`) | wafer.space's template today | Python | - | main, nightly |
 | The whole chip at transistor level (`.github/workflows/transistor.yml`) | the RTL and the datasheet | ngspice | layout | on demand |
@@ -37,7 +38,7 @@ Nothing is allowed to fail.
 Locally: `make sim`, `make sim-gl` (after the flow), `make sim-system`,
 `make sim-system-gl`, `make rz80-elab rz80-bus rz80-fuse rz80-xyflags
 rz80-traces rz80-sweep`, `make rz80-traces-gl` (after the flow), `make rz80-z80test Z80TEST=z80full`, `make rz80-basic`,
-`make rz80-zex ZEX=zexdoc`, `make pin-timing`, `make precheck`.
+`make rz80-zex ZEX=zexdoc`, `make pin-timing`, `make sdc-check`, `make precheck`.
 
 ## Power and ground pads
 
