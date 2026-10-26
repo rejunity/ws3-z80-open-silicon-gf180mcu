@@ -1,8 +1,6 @@
 # A Z80 for wafer.space Run 3: RZ80 on GF180MCU, quarter slot
 
-> **Branch `mcu9t5v0`: the 9-track comparison of `main`.** The chip is
-> main's in every respect but the standard cells, `gf180mcu_fd_sc_mcu9t5v0`
-> here against main's 7-track `gf180mcu_fd_sc_mcu7t5v0`.
+> **Branch `mcu9t5v0` is the 9-track comparison of `main`:** main's chip with the `gf180mcu_fd_sc_mcu9t5v0` cells; the results below are this branch's.
 
 This is a Zilog Z80 for fabrication in GlobalFoundries' 180 nm process
 (GF180MCU, 5 V) on [wafer.space](https://wafer.space)'s Run 3, in a quarter
@@ -67,15 +65,15 @@ the two cells share their footprint and pins, so the pad keeps its place.
 
 ## Results
 
-A local run of `make librelane` on 2026-10-26 at `f873608` (CI repeats the
+A local run of `make librelane` on 2026-10-26 at `b7de5f8` (CI repeats the
 flow on every push and prints its sign-off in the run's summary):
 
 | | |
 |---|---|
-| Logic | 11,895 cells, 260k µm² (15 % of the core), 479 flip-flops |
-| Setup slack, 50 ns | typical +10.84 ns · slow +2.56 ns (max wires +1.34) · fast +14.19 ns |
-| Hold slack | +0.67 ns or more at every corner |
-| Fastest clock | typical 35 MHz · slow 22 MHz (max wires 21 MHz) · fast 46 MHz |
+| Logic | 11,120 cells, 300k µm² (17 % of the core), 479 flip-flops |
+| Setup slack, 50 ns | typical +10.57 ns · slow +2.65 ns (max wires +1.91) · fast +13.91 ns |
+| Hold slack | +0.25 ns or more at every corner |
+| Fastest clock | typical 35 MHz · slow 22 MHz (max wires 22 MHz) · fast 45 MHz |
 | Sign-off | route DRC 0, Magic DRC 0, KLayout DRC 0, LVS 0, antenna 0, XOR 0; setup and hold at all 9 corners |
 | NMOS Z80 pin timing | PASS at 4, 6 and 8 MHz at the typical, slow and fast corners: all 47 parameters at each grade's own clock (`make pin-timing`) |
 
@@ -121,20 +119,27 @@ parameter with OpenSTA at each grade's own clock, every corner (`make
 pin-timing`, every push).
 
 The pins, into 100 pF with the pads as RZ80 simulated them: every output
-1.5-46.1 ns after its CLK edge (the limits are 55-300 ns); the opcode's setup
-TsD(Cr) needs 21.1 ns at the slow corner (30-35 allowed). The tightest
-margins are the input holds at the fast corner, WAIT's 1.6 ns (6 MHz) and
-1.9 ns (4 MHz), and at 8 MHz the I/O write's data-to-WR separation, 1.6 ns.
+1.0-44.0 ns after its CLK edge (the limits are 55-300 ns); the opcode's setup
+TsD(Cr) needs 18.6 ns at the slow corner (30-35 allowed). The tightest
+margins are the input holds at the fast corner, WAIT's 1.5 ns (6 MHz) and
+1.8 ns (4 MHz), and at 8 MHz the I/O write's data-to-WR separation, 1.5 ns.
 
-Against the run at `8981221` (40 ns, the template's constraints with a
-hand-written WAIT hold, setup signed off at the typical corner only, which
-missed 40 ns at the slow corner by up to 3.9 ns): the same logic plus 1,139
-more repair buffers, mostly the inputs' hold delay at every corner, 260k µm²
-against 243k. Measured the same way, from the CLK pin, that layout reaches
-32.5 MHz typical and 19.6 MHz slow (max wires); this one 35 and 21 MHz.
+Against main's 7-track layout (the run at `f873608`: the same constraints
+and flow): 15 % more logic area, 300k µm² against 260k, in fewer cells
+(11,120 against 11,895; 3,402 repair buffers against 3,724), and the same
+speed within a few percent: both are held by the same kind of half-cycle
+path, typical 34.7 MHz against 35.3, slow 22.4 against 22.3 (max wires 21.7
+against 21.1), fast 45.1 against 46.2. The 9-track cells leave the
+whole-cycle paths 16 ns more slack at the slow corner (+25.0 ns against
++8.8), and the post-CTS repair resized 7 cells against 240. The tightest
+pin margins are within 0.1 ns of the 7-track chip's at every grade, and the
+outputs' delays have 1.4-2.8 ns more. Hold is +0.25 ns at worst against
++0.67, at the WR output at the fast corner. The core's power, vectorless at
+the typical corner: 135 mW against 113.
 
-Against ws0's quarter slot with RZ80 (9-track cells, `bi_24t` pads at their
-full drive): 6 % less logic area, 260k µm² against 276k, the 7-track cells.
+Against ws0's quarter slot with RZ80 (9-track cells too, `bi_24t` pads at
+their full drive, 40 ns and the template's constraints): 9 % more logic
+area, 300k µm² against 276k, mostly repair buffers (3,402 against 2,057).
 
 ## Tests
 
