@@ -161,7 +161,7 @@ push, ZEXDOC and ZEXALL in full on main and nightly.
 
 ## Transistor level
 
-The whole chip, extracted from its GDS, runs a short program in ngspice at the typical, slow and fast corners: [spice/README.md](spice/README.md). The workflow is `.github/workflows/transistor.yml`, on demand; its figures go in `spice/chip/gf180mcu/`.
+The whole chip, extracted from its GDS, runs a short program in ngspice at the typical, slow and fast corners: [spice/README.md](spice/README.md). The workflow is `.github/workflows/transistor.yml`, on demand; it publishes its results in [docs/transistor/](docs/transistor/README.md): the pins against the RTL and every datasheet parameter at each corner, and the figures. The latest, for the layout of `c3feb60`: every pin edge matches the RTL and all 25 parameters pass at all three corners.
 
 ## Build and test
 

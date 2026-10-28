@@ -7,8 +7,9 @@
 # this machine one 2.4 us window ran past 3.9 hours): every window starts
 # from the node voltages the one before ended with. Then the pins against the
 # RTL, every AC parameter of the Z8400's datasheet on every cycle that has it,
-# and the figures, as the artifact transistor-results: spice/chip/gf180mcu/
-# (tt's; the other corners' in <corner>/), committed to the repository.
+# and the figures, as the artifact transistor-results (spice/chip/gf180mcu/:
+# tt's; the other corners' in <corner>/); the publish job commits them to
+# main's docs/transistor/ with where they came from.
 name: Transistor
 
 on:
@@ -68,6 +69,9 @@ jobs:
     # Magic extracts the flat chip, coupling capacitance included, in about an
     # hour here (8 cores, one used); a GitHub runner is slower
     timeout-minutes: 355
+    outputs:
+      gds_run: ${{ steps.gds.outputs.run }}
+      gds_sha: ${{ steps.gds.outputs.sha }}
     steps:
       - uses: actions/checkout@v6
       - uses: DeterminateSystems/nix-installer-action@main
@@ -87,13 +91,16 @@ jobs:
           [ -d gf180mcu/$PDK ] ||
             nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
       - name: The chip's GDS, from main's latest successful CI run
+        id: gds
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          id=$(gh run list -R "$GITHUB_REPOSITORY" --workflow ci.yml --branch main --status success \
-                 --limit 1 --json databaseId -q '.[0].databaseId')
+          read -r id sha < <(gh run list -R "$GITHUB_REPOSITORY" --workflow ci.yml --branch main --status success \
+                 --limit 1 --json databaseId,headSha -q '.[0] | "\(.databaseId) \(.headSha)"')
           gh run download "$id" -R "$GITHUB_REPOSITORY" -n chip_final -D final
-          echo "CI run $id: $(ls -l final/gds/chip_top.gds)" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "CI run $id ($sha): $(ls -l final/gds/chip_top.gds)" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "run=$id" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - name: iverilog (the RTL's reference)
         run: sudo apt-get update && sudo apt-get install -y iverilog
       - name: Extract the layout (Magic) and run the RTL
@@ -696,3 +703,43 @@ jobs:
           name: transistor-results
           path: spice/chip/gf180mcu
           retention-days: 90
+
+  # The figures into docs/transistor/ on main, with where they came from: the
+  # one job that may write, as github-actions[bot] (no personal identity or
+  # address), "[skip ci]" so the figures alone start no CI run
+  publish:
+    name: the results into docs/transistor/
+    needs: [netlist, figures]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/download-artifact@v8
+        with:
+          name: transistor-results
+          path: ${{ runner.temp }}/transistor-results
+      - name: docs/transistor/ from the results
+        run: |
+          python3 -I scripts/transistor_docs.py "$RUNNER_TEMP/transistor-results" --out docs/transistor \
+            --run "$GITHUB_RUN_ID" --commit "${{ needs.netlist.outputs.gds_sha }}" \
+            --gds-run "${{ needs.netlist.outputs.gds_run }}" --repo "$GITHUB_REPOSITORY" || rc=$?
+          cat docs/transistor/README.md >> "$GITHUB_STEP_SUMMARY"
+          echo "rc=${rc:-0}" >> "$GITHUB_ENV"
+      - name: Commit and push to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A docs/transistor
+          if git diff --cached --quiet; then echo "docs/transistor/ unchanged"; exit "$rc"; fi
+          sha=${{ needs.netlist.outputs.gds_sha }}
+          git commit -q -m "docs/transistor: the chip at transistor level, ${sha:0:7} (run $GITHUB_RUN_ID) [skip ci]"
+          for try in 1 2 3; do
+            git push origin HEAD:main && exit "$rc"
+            git pull --rebase origin main
+          done
+          echo "push to main failed 3 times"; exit 1
+

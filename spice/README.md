@@ -22,8 +22,9 @@ in ngspice:
 It takes hours, so it runs apart from CI, on demand:
 `.github/workflows/transistor.yml` (Actions, *Transistor*, *Run workflow*)
 takes the GDS of main's latest successful CI run and leaves the results as the
-artifact `transistor-results`; they are committed under `chip/gf180mcu/`
-(`tt`; the other corners in `ss/` and `ff/`). Locally:
+artifact `transistor-results`, which its `publish` job commits to main as
+[`docs/transistor/`](../docs/transistor/README.md) (`tt`; the other corners
+in `ss/` and `ff/`), with where they came from. Locally:
 
     python3 spice/chip.py ws3 --work build/transistor --gds final/gds/chip_top.gds --corner tt
 
