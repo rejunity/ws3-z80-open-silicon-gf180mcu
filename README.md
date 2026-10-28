@@ -63,15 +63,16 @@ the two cells share their footprint and pins, so the pad keeps its place.
 
 ## Results
 
-A local run of `make librelane` on 2026-10-26 at `6603ef1` (CI repeats the
-flow on every push and prints its sign-off in the run's summary):
+A local run of `make librelane` on 2026-10-28 on the `wait-hold` branch, every
+sampled input held 5 ns past the datasheet (CI repeats the flow on every push
+and prints its sign-off in the run's summary):
 
 | | |
 |---|---|
-| Logic | 14,213 cells, 307k µm² (18 % of the core), 479 flip-flops |
-| Setup slack, 50 ns | typical +10.28 ns · slow +1.49 ns (max wires +1.11) · fast +13.80 ns |
-| Hold slack | +0.54 ns or more at every corner |
-| Fastest clock | typical 34 MHz · slow 21 MHz (max wires 20.9 MHz) · fast 45 MHz |
+| Logic | 14,352 cells, 309k µm² (18 % of the core), 479 flip-flops |
+| Setup slack, 50 ns | typical +10.19 ns · slow +1.45 ns (max wires +1.06) · fast +13.76 ns |
+| Hold slack | +0.31 ns or more at every corner |
+| Fastest clock | typical 34 MHz · slow 21 MHz (max wires 20.9 MHz) · fast 45 MHz (measured at `6603ef1`, whose setup slack is within 0.09 ns of this run's) |
 | Sign-off | route DRC 0, Magic DRC 0, KLayout DRC 0, LVS 0, antenna 0, XOR 0; setup and hold at all 9 corners |
 | Edges, loads, fanout | every pin within its limits at all 9 corners: 0 max slew, 0 max capacitance, 0 max fanout violations (`make check-drv`) |
 | NMOS Z80 pin timing | PASS at 4, 6 and 8 MHz at the typical, slow and fast corners: all 47 parameters at each grade's own clock (`make pin-timing`) |
@@ -103,7 +104,13 @@ is the flow's one SDC, for placement, routing and sign-off:
   CLK edge is held only to the parameter from that edge, an input only to the
   setup and hold around the edge that samples it;
 - the flow's resizer repairs them at every corner: it adds the hold delay
-  the WAIT, INT, BUSRQ and RESET inputs need, as RZ80's chip flow does;
+  the WAIT, INT, BUSRQ and RESET inputs need, as RZ80's chip flow does, and
+  5 ns more than the datasheet asks (`make sdc HOLD_MARGIN=5`, `--hold-margin`).
+  The datasheet's holds are 0 ns, the very edge, and without the margin the
+  repair stopped just past it: WAIT's, sampled on CLK's fall, kept 1.7 ns at
+  the fast corner. A hold is measured from the same edge that samples the
+  input, so its margin does not shrink with a faster clock; it moves with the
+  clock's edge rate, through the CLK pad;
 - the special cases that hold on this chip: NMI is asynchronous (z80_top's
   pulse catcher); MREQ, IORQ, RD and WR float only in a bus grant and come
   back high, so their pads never turn on driving low; read data is held until
@@ -119,10 +126,11 @@ pin-timing`, every push).
 
 The pins, into 100 pF with the pads as RZ80 simulated them: every output
 3.3-49.5 ns after its CLK edge (the limits are 55-300 ns); the opcode's setup
-TsD(Cr) needs 9.7 ns at the slow corner (30-35 allowed). The tightest
-margins are the input holds at the fast corner, WAIT's 1.9 ns (4 MHz) and
-1.7 ns (6 MHz) and BUSRQ's 2.3 ns (8 MHz); the I/O write's data-to-WR
-separation keeps 3.3 ns at 8 MHz.
+TsD(Cr) needs 9.7 ns at the slow corner (30-35 allowed). Every input hold
+keeps 6.7 ns or more at every grade and corner (WAIT 6.7 ns at 6 MHz, before
+the margin 1.7 ns; BUSRQ and RESET 6.7 ns at 8 MHz, before 2.3 and 2.6 ns),
+and every input setup 22 ns or more (WAIT at 8 MHz, needing 27.7 ns of its
+50); the I/O write's data-to-WR separation keeps 3.3 ns at 8 MHz.
 
 Against the run at `8981221` (40 ns, the template's constraints with a
 hand-written WAIT hold, setup signed off at the typical corner only, which
