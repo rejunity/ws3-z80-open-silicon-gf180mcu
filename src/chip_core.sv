@@ -71,6 +71,35 @@ module chip_core #(
     assign bidir_pu = '0;
     assign bidir_pd = '0;
 
+    // ---- the pads' outputs into the core -----------------------------------
+    // Each pad output the core reads (D7..D0, WAIT INT NMI BUSRQ, RESET) drives
+    // one buffer: the pad library lets a pad's Y drive one cell
+    // (default_max_fanout 1), and OpenROAD's design repair, given more, puts a
+    // buffer on each load rather than one in front of them all (D2's Y drove
+    // five). Not CLK: the clock tree starts at its pad's Y. The flow's setup
+    // repairs neither remove buffers nor clone gates (librelane/config.yaml).
+    localparam NUM_PAD_Y = 13;
+    wire [NUM_PAD_Y-1:0] pad_y = {rst_n, input_in[3:0], bidir_in[7:0]};
+    wire [NUM_PAD_Y-1:0] core_y;
+    wire [7:0] data_in = core_y[7:0];
+    wire [3:0] ctl_in  = core_y[11:8];
+    wire       reset_n = core_y[12];
+    generate
+    for (genvar i = 0; i < NUM_PAD_Y; i++) begin : pad_ybuf
+    `ifdef SYNTHESIS
+    `ifdef SCL_gf180mcu_fd_sc_mcu9t5v0
+        (* keep *) gf180mcu_fd_sc_mcu9t5v0__buf_2 buf_y (.I(pad_y[i]), .Z(core_y[i]));
+    `elsif SCL_gf180mcu_fd_sc_mcu7t5v0
+        (* keep *) gf180mcu_fd_sc_mcu7t5v0__buf_2 buf_y (.I(pad_y[i]), .Z(core_y[i]));
+    `else
+        assign core_y[i] = pad_y[i];
+    `endif
+    `else
+        assign core_y[i] = pad_y[i];
+    `endif
+    end
+    endgenerate
+
     // ---- RZ80 -------------------------------------------------------------------
 
     wire [15:0] addr;
@@ -104,12 +133,12 @@ module chip_core #(
     z80_top u_z80 (
         .clk        (clk),
         .por_n      (por_n),
-        .reset_n    (rst_n),
+        .reset_n    (reset_n),
 
         // NOTE: The original Z80 has a peculiar data bus pin order, keep it to minimize wire crossing on the DIP40 PCB
         // Also see: http://www.righto.com/2014/09/why-z-80s-data-pins-are-scrambled.html
         // (the order is in slot_*.yaml: bidir[i] is Di)
-        .data_in    (bidir_in [7:0]),
+        .data_in    (data_in),
         .data_out   (bidir_out[7:0]),
         .data_drive (data_drive),
         .addr       (addr),
@@ -128,10 +157,10 @@ module chip_core #(
         .ctl_drive  (ctl_drive),
 
         // 4 input control pins
-        .wait_n     (input_in[0]),
-        .int_n      (input_in[1]),
-        .nmi_n      (input_in[2]),
-        .busreq_n   (input_in[3]),
+        .wait_n     (ctl_in[0]),
+        .int_n      (ctl_in[1]),
+        .nmi_n      (ctl_in[2]),
+        .busreq_n   (ctl_in[3]),
 
         .dbg_t      (),
         .dbg_m      ()

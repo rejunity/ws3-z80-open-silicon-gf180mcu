@@ -27,6 +27,7 @@ Nothing is allowed to fail.
 | ZEXALL, 14 of its tests (`make rz80-zex ZEX=zexall ZEX_TESTS=...`) | real Z80s (the CRCs in the program) | Verilator | RTL | every push |
 | ZEXDOC and ZEXALL, all 67 tests each, in parts (`make rz80-zex`) | real Z80s | Verilator | RTL | main, nightly |
 | Sign-off: route / Magic / KLayout DRC, LVS, antenna, XOR, setup and hold at every corner, against the NMOS Z80's datasheet on the pins (`timing/chip_top_nmos.sdc`) and 50 ns in the core (`tests/rz80/scripts/summary.py`) | LibreLane | LibreLane | layout | every push |
+| Every pin's edge, load and fanout within its limits, at every corner (`make check-drv`, `scripts/check_drv.py`): the standard cells at the PDK's flow limits, 3 ns, 0.2 pF and 10 loads (in their libraries, `scripts/cell_limits.py`), the pads within the range RZ80 simulated them over (`spice/pads/`) | the cells' libraries | LibreLane (OpenSTA) | layout | every push |
 | The pins against the NMOS Z80's datasheet at 4, 6 and 8 MHz, each at its own clock, every corner: all 47 parameters, the pulse widths and pin-to-pin separations too (`make pin-timing`) | Zilog PS0178 (`timing/z8400_nmos.json`) | OpenSTA | layout | every push |
 | wafer.space precheck (`make precheck`) | wafer.space | LibreLane / KLayout / Magic | layout | every push |
 | The copies of RZ80's files (`make sync-check`) | `rz80/` | Python | - | every push |
@@ -38,7 +39,7 @@ Nothing is allowed to fail.
 Locally: `make sim`, `make sim-gl` (after the flow), `make sim-system`,
 `make sim-system-gl`, `make rz80-elab rz80-bus rz80-fuse rz80-xyflags
 rz80-traces rz80-sweep`, `make rz80-traces-gl` (after the flow), `make rz80-z80test Z80TEST=z80full`, `make rz80-basic`,
-`make rz80-zex ZEX=zexdoc`, `make pin-timing`, `make sdc-check`, `make precheck`.
+`make rz80-zex ZEX=zexdoc`, `make pin-timing`, `make check-drv` (after the flow), `make sdc-check`, `make precheck`.
 
 ## Power and ground pads
 

@@ -99,15 +99,35 @@ TIMING_VIOLATION_CORNERS: ["*"]
 # The pads' timing as RZ80 simulated them at transistor level (spice/pads/,
 # spice/pads.py): the PDK's gf180mcu_fd_io libraries with bi_t, in_c and in_s
 # re-measured as chip_top ties them, into the datasheet's 100 pF and with its
-# slow edges (to 30 ns) -- where the PDK's own tables (to 20-33 pF, 1-5 ns
-# edges) are extrapolated. The SDC's datasheet contract is repaired and signed
-# off against the same pads timing/pin_timing.py checks. Their power tables
-# are the PDK's, to 30 pF: at 100 pF the flow's power figure for the pads is
-# extrapolated (negative), not a measurement.
+# slow edges (to 120 ns, past the slowest edge a bi_t makes into 250 pF) --
+# where the PDK's own tables (to 20-33 pF, 1-5 ns edges) are extrapolated --
+# and that range as their pins' max_transition / max_capacitance. The SDC's
+# datasheet contract is repaired and signed off against the same pads
+# timing/pin_timing.py checks. Their power too: internal and leakage power
+# measured in the same runs, where the PDK's tables (to 30 pF) extrapolated to
+# 100 pF went negative.
 PAD_LIBS:
   "*_tt_025C_5v00": [dir::../spice/pads/gf180mcu/gf180mcu_fd_io__tt_025C_5v00.lib]
   "*_ff_n40C_5v50": [dir::../spice/pads/gf180mcu/gf180mcu_fd_io__ff_n40C_5v50.lib]
   "*_ss_125C_4v50": [dir::../spice/pads/gf180mcu/gf180mcu_fd_io__ss_125C_4v50.lib]
+
+# The standard cells: the PDK's libraries with the flow's limits on every pin
+# -- each pin's max_transition / max_capacitance the tighter of the library's
+# and the PDK's MAX_TRANSITION_CONSTRAINT (3 ns) / MAX_CAPACITANCE_CONSTRAINT
+# (0.2 pF), default_max_fanout its MAX_FANOUT_CONSTRAINT (10) -- written by
+# scripts/cell_limits.py into build/cell_libs/ (`make cell-libs`, which the
+# flow targets run first). On the design (LibreLane's default SDC) OpenSTA
+# would hold every pin to them, the pads' board side too, which drives and
+# takes the datasheet's 100 pF and slow edges: in the cells' libraries they
+# hold the core, and the pads keep their own range (PAD_LIBS). The antenna
+# diode's pin counts no fanout there: the router adds diodes after the last
+# repair, and a diode is a junction, not a gate input (two on the data pads'
+# outputs, which allow one load, counted as a second; their capacitance still
+# counts). The tables are the PDK's.
+CELL_LIBS:
+  "*_tt_025C_5v00": [dir::../build/cell_libs/gf180mcu_fd_sc_mcu7t5v0__tt_025C_5v00.lib]
+  "*_ff_n40C_5v50": [dir::../build/cell_libs/gf180mcu_fd_sc_mcu7t5v0__ff_n40C_5v50.lib]
+  "*_ss_125C_4v50": [dir::../build/cell_libs/gf180mcu_fd_sc_mcu7t5v0__ss_125C_4v50.lib]
 
 # Increase density for more
 # logic on your die
@@ -121,6 +141,25 @@ GRT_ALLOW_CONGESTION: true
 # own GF180 flows exclude them for the same reason.
 EXTRA_EXCLUDED_CELLS:
 - "gf180mcu_fd_sc_mcu7t5v0__dly*"
+# ... and the gates too weak at the slow corner for the edge limit: their own
+# edge, into 0.02 pF (one load and a short wire) from an input edge at the
+# limit (3 ns), takes more than 2.1 ns at ss (70 % of
+# MAX_TRANSITION_CONSTRAINT; the library's tables).
+# OpenROAD's design repair only lightens a gate's load, never upsizes it for
+# its own edge, so with these in the netlist the slow corners keep edges over
+# 3 ns (oai33_1: 3.5 ns into 0.02 pF; nor3_1 3.6 ns into 0.027 pF in a run)
+- "gf180mcu_fd_sc_mcu7t5v0__oai33_*"
+- "gf180mcu_fd_sc_mcu7t5v0__aoi222_1"
+- "gf180mcu_fd_sc_mcu7t5v0__nor4_1"
+- "gf180mcu_fd_sc_mcu7t5v0__oai32_1"
+- "gf180mcu_fd_sc_mcu7t5v0__oai32_2"
+- "gf180mcu_fd_sc_mcu7t5v0__oai222_1"
+- "gf180mcu_fd_sc_mcu7t5v0__oai222_2"
+- "gf180mcu_fd_sc_mcu7t5v0__oai31_1"
+- "gf180mcu_fd_sc_mcu7t5v0__aoi221_1"
+- "gf180mcu_fd_sc_mcu7t5v0__aoi211_1"
+- "gf180mcu_fd_sc_mcu7t5v0__oai221_1"
+- "gf180mcu_fd_sc_mcu7t5v0__nor3_1"
 
 # No buffering in the post-CTS setup repair: with the setup margin below, it
 # goes on to rebuffer the nets the data bus pads drive into the core, and this
@@ -131,8 +170,9 @@ PL_RESIZER_SETUP_BUFFERING: False
 # Z80 project specific FIXES --------------------------------------------------
 # Fix HOLD violations
 PL_RESIZER_HOLD_SLACK_MARGIN: 0.5 # default 0.1, wafer-space template: 0.35 ns
-GRT_RESIZER_HOLD_SLACK_MARGIN: 1.0 # default 0.05, wafer-space template: 0.3 ns; the routed
-# wires take up to 0.5 ns of the post-route repair's estimate off the pins' holds
+GRT_RESIZER_HOLD_SLACK_MARGIN: 1.5 # default 0.05, wafer-space template: 0.3 ns; the routed
+# wires take up to 1.1 ns of the post-route repair's estimate off the pins' holds
+# at max_ss (the clock tree's wires slow more than the inputs' delay cells)
 
 PL_RESIZER_HOLD_MAX_BUFFER_PCT: 100 # default 50
 GRT_RESIZER_HOLD_MAX_BUFFER_PCT: 100 # default 50
@@ -148,11 +188,69 @@ RUN_POST_GRT_RESIZER_TIMING: True
 GRT_RESIZER_SETUP_BUFFERING: False
 GRT_RESIZER_SETUP_SLACK_MARGIN: 3.0 # default 0.025 ns
 
-# The routed wires also leave weak core gates' edges at the slow corners past
-# the 3 ns MAX_TRANSITION_CONSTRAINT (up to 6 ns at max_ss, inside the
-# library's tables, so not extrapolated): slew, cap and fanout repaired again
-# after global routing, which leaves 3.8 ns at worst
+# Every pin's edge, load and fanout within its limits at every corner (CI:
+# scripts/check_drv.py). The repairs estimate the wires from global routing,
+# and a routed, extracted net carries up to 1.46x its estimated capacitance
+# (99th percentile; median 1.05-1.14 for the 0.01-0.1 pF nets weak gates
+# drive):
+# - the repairs aim 40 % inside the limits, 1.8 ns and 0.12 pF, before routing
+#   and again after global routing (aiming 10-20 % inside, weak gates' edges
+#   reached 3.8 ns at max_ss and wire repeaters' loads 0.29 pF);
+# - wires longer than 600 um (0.08 pF of Metal2) get repeaters, so that no
+#   driver's whole load hangs on one long estimate (a buf_20 drove 0.21 pF).
+# (With the gates above in the netlist, an edge aim of 35 % or more never
+# finished: the repair kept buffering a gate whose own edge it could not
+# reach.)
+DESIGN_REPAIR_MAX_SLEW_PCT: 40 # default 20
+DESIGN_REPAIR_MAX_CAP_PCT: 40 # default 20
+DESIGN_REPAIR_MAX_WIRE_LENGTH: 600 # um, default 0 (none)
 RUN_POST_GRT_DESIGN_REPAIR: True
+GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 40 # default 10
+GRT_DESIGN_REPAIR_MAX_CAP_PCT: 40 # default 10
+GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 600 # um, default 0 (none)
+
+# The repairs estimate each corner's wires with that corner's R and C: the
+# PDK's fit (nominal) and, for the min and max corners, scaled as the PDK's
+# own extraction rules make them on this layout (median over the nets: C x
+# 0.887 / 1.136, R x 0.915 / 1.085 of nominal). With one RC for every corner
+# the max corners' wires came out up to 14 % heavier than the repairs saw
+LAYERS_RC:
+  "nom_*":
+    Metal2: {res: 2.25636E-04, cap: 1.35357E-04}
+    Metal3: {res: 2.25636E-04, cap: 1.46141E-04}
+    Metal4: {res: 2.25636E-04, cap: 1.50688E-04}
+    Metal5: {res: 5.85545E-05, cap: 1.55595E-04}
+  "min_*":
+    Metal2: {res: 2.06457E-04, cap: 1.20062E-04}
+    Metal3: {res: 2.06457E-04, cap: 1.29627E-04}
+    Metal4: {res: 2.06457E-04, cap: 1.33660E-04}
+    Metal5: {res: 5.35774E-05, cap: 1.38013E-04}
+  "max_*":
+    Metal2: {res: 2.44815E-04, cap: 1.53766E-04}
+    Metal3: {res: 2.44815E-04, cap: 1.66016E-04}
+    Metal4: {res: 2.44815E-04, cap: 1.71182E-04}
+    Metal5: {res: 6.35316E-05, cap: 1.76756E-04}
+
+# The pads' core-side outputs each drive one buffer (src/chip_core.sv,
+# pad_ybuf): the pad library allows a fanout of one there. The setup repairs
+# neither remove buffers nor clone gates, which would take a pad's output
+# back to several loads (run I removed none and cloned 2). (A don't-touch on
+# the buffers stops the hold repair instead: it tries to delay WAIT at the
+# pad's output, finds its one load untouchable and fails, RSZ-3009.)
+PL_RESIZER_SETUP_BUFFER_REMOVAL: False
+PL_RESIZER_SETUP_GATE_CLONING: False
+GRT_RESIZER_SETUP_BUFFER_REMOVAL: False
+GRT_RESIZER_SETUP_GATE_CLONING: False
+
+# The clock tree within the same limits (no repair after CTS touches clock
+# nets): its buffers' loads 40 % inside the 0.2 pF (the extracted clock wires
+# took a level-3 buffer to 0.36 pF), its wires cut by repeaters every 300 um
+# (a clkbuf_2 still drove 0.23 pF: four clkbuf_16 and 0.14 pF of tree
+# wire), and at most 8 flip-flops per leaf buffer (the search picked 10 a
+# cluster and left leaves driving 11 and 12)
+CTS_MAX_CAP: 0.12
+CTS_CLK_MAX_WIRE_LENGTH: 300 # um, default 0 (none)
+CTS_SINK_CLUSTERING_SIZE: 8
 
 # PL_RESIZER_ALLOW_SETUP_VIOS: True # default False
 # GRT_RESIZER_ALLOW_SETUP_VIOS: True # default False

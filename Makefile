@@ -95,35 +95,51 @@ defines:
 	$(file >>src/generated_defines.svh,`define SCL_${SCL})
 .PHONY: defines
 
-librelane: clone-pdk defines ## Run LibreLane flow (synthesis, PnR, verification)
+# The standard cells' libraries the flow reads (CELL_LIBS in
+# librelane/config.yaml): the PDK's, with its LibreLane configuration's limits
+# on every pin, the tighter of the library's and MAX_TRANSITION_CONSTRAINT /
+# MAX_CAPACITANCE_CONSTRAINT, default_max_fanout MAX_FANOUT_CONSTRAINT
+# (scripts/cell_limits.py): in the cells' libraries rather than on the design,
+# so that the pads keep their own range
+CELL_LIB_DIR     := build/cell_libs
+CELL_LIB_CORNERS := tt_025C_5v00 ss_125C_4v50 ff_n40C_5v50
+CELL_LIB_FILES   := $(foreach c,$(CELL_LIB_CORNERS),$(CELL_LIB_DIR)/$(SCL)__$(c).lib)
+$(CELL_LIB_DIR)/$(SCL)__%.lib: scripts/cell_limits.py | $(PDK_ROOT)/ciel/gf180mcu/versions/$(PDK_COMMIT)/$(PDK)
+	$(PYTHON) scripts/cell_limits.py $(PDK_ROOT)/$(PDK)/libs.ref/$(SCL)/lib/$(SCL)__$*.lib $@ \
+	  --pdk-config $(PDK_ROOT)/$(PDK)/libs.tech/librelane/$(SCL)/config.tcl
+
+cell-libs: $(CELL_LIB_FILES) ## Write the standard cells' libraries with the flow's limits (build/cell_libs/)
+.PHONY: cell-libs
+
+librelane: clone-pdk defines cell-libs ## Run LibreLane flow (synthesis, PnR, verification)
 	SRAM_DEFINE=${SRAM_DEFINE} librelane ${LIBRELANE_CONFIGS} ${LIBRELANE_OPTS} --save-views-to $(MAKEFILE_DIR)/final
 .PHONY: librelane
 
-librelane-condensed: clone-pdk defines ## Run LibreLane flow (synthesis, PnR, verification)
+librelane-condensed: clone-pdk defines cell-libs ## Run LibreLane flow (synthesis, PnR, verification)
 	SRAM_DEFINE=${SRAM_DEFINE} librelane --condensed ${LIBRELANE_CONFIGS} ${LIBRELANE_OPTS} --save-views-to $(MAKEFILE_DIR)/final
 .PHONY: librelane-condensed
 
-librelane-nodrc: clone-pdk defines ## Run LibreLane flow without DRC checks
+librelane-nodrc: clone-pdk defines cell-libs ## Run LibreLane flow without DRC checks
 	SRAM_DEFINE=${SRAM_DEFINE} librelane ${LIBRELANE_CONFIGS} ${LIBRELANE_OPTS} --save-views-to $(MAKEFILE_DIR)/final --skip KLayout.Antenna --skip KLayout.DRC --skip Magic.DRC
 .PHONY: librelane-nodrc
 
-librelane-klayoutdrc: clone-pdk defines ## Run LibreLane flow without magic DRC checks
+librelane-klayoutdrc: clone-pdk defines cell-libs ## Run LibreLane flow without magic DRC checks
 	SRAM_DEFINE=${SRAM_DEFINE} librelane ${LIBRELANE_CONFIGS} ${LIBRELANE_OPTS} --save-views-to $(MAKEFILE_DIR)/final --skip Magic.DRC
 .PHONY: librelane-klayoutdrc
 
-librelane-magicdrc: clone-pdk defines ## Run LibreLane flow without KLayout DRC checks
+librelane-magicdrc: clone-pdk defines cell-libs ## Run LibreLane flow without KLayout DRC checks
 	SRAM_DEFINE=${SRAM_DEFINE} librelane ${LIBRELANE_CONFIGS} ${LIBRELANE_OPTS} --save-views-to $(MAKEFILE_DIR)/final --skip KLayout.DRC
 .PHONY: librelane-magicdrc
 
-librelane-openroad: clone-pdk defines ## Open the last run in OpenROAD
+librelane-openroad: clone-pdk defines cell-libs ## Open the last run in OpenROAD
 	SRAM_DEFINE=${SRAM_DEFINE} librelane ${LIBRELANE_CONFIGS} ${LIBRELANE_OPTS} --last-run --flow OpenInOpenROAD
 .PHONY: librelane-openroad
 
-librelane-klayout: clone-pdk defines ## Open the last run in KLayout
+librelane-klayout: clone-pdk defines cell-libs ## Open the last run in KLayout
 	SRAM_DEFINE=${SRAM_DEFINE} librelane ${LIBRELANE_CONFIGS} ${LIBRELANE_OPTS} --last-run --flow OpenInKLayout
 .PHONY: librelane-klayout
 
-librelane-padring: clone-pdk defines ## Only create the padring
+librelane-padring: clone-pdk defines cell-libs ## Only create the padring
 	python3 scripts/padring.py ${LIBRELANE_CONFIGS} ${LIBRELANE_OPTS}
 .PHONY: librelane-padring
 
@@ -284,6 +300,13 @@ pin-timing: ## The pins against the NMOS Z80's datasheet at 4, 6 and 8 MHz, ever
 	for g in $(GRADES); do STA="$(STA)" $(PYTHON) timing/pin_timing.py $$run --grade $$g || fail="$$fail $$g"; done; \
 	if [ -n "$$fail" ]; then echo "pin timing FAILS at grade(s)$$fail MHz"; exit 1; fi
 .PHONY: pin-timing
+
+# Every pin's edge, load and fanout within its limits at every corner, as the
+# latest run's sign-off STA counts them: the core's limits in the standard
+# cells' libraries (cell-libs), the pads' range in theirs (spice/pads/)
+check-drv: ## No max slew, max capacitance or max fanout violation at any corner (the latest run)
+	$(PYTHON) scripts/check_drv.py $$(ls -td librelane/runs/RUN_* | head -1)
+.PHONY: check-drv
 
 # The flow's constraints (librelane/config.yaml's SDC files), generated: one
 # clock at the CLK pin at the flow's CLOCK_PERIOD (the core's goal), every pin
