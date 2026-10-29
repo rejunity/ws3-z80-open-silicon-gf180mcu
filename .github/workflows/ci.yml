@@ -283,7 +283,7 @@ jobs:
       - name: Trace programs and pin scenarios vs perfectz80's recorded traces, on the gate-level netlist
         if: success() || failure()
         run: nix develop --command make rz80-traces-gl
-      - name: The pins against the NMOS Z80's datasheet at 4, 6 and 8 MHz (OpenSTA, every corner)
+      - name: The pins against the NMOS Z80's datasheet at 2.5-8 MHz and the TRS-80, ZX80 / ZX81 and Spectrum clocks (OpenSTA, every corner)
         if: success() || failure()
         run: nix develop --command make pin-timing
       - name: wafer.space precheck (its own Nix shell)

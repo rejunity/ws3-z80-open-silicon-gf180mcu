@@ -229,7 +229,7 @@ $(RZ80_BUILD)/tb_z80.vvp: tests/rz80/iverilog/tb_z80.v $(RZ80_SRC)
 	@mkdir -p $(RZ80_BUILD)
 	$(IVERILOG) -g2001 -Isrc/rz80 -s tb_z80 -o $@ $(RZ80_SRC) $<
 
-rz80-traces: $(RZ80_BUILD)/tb_z80.vvp ## The 14 trace programs and 15 pin scenarios against perfectz80's recordings, half-cycle by half-cycle (iverilog, RTL)
+rz80-traces: $(RZ80_BUILD)/tb_z80.vvp ## The 14 trace programs and 19 pin scenarios (4 inside a ZX Spectrum or ZX81) against perfectz80's recordings, half-cycle by half-cycle (iverilog, RTL)
 	TB_VVP=$(RZ80_BUILD)/tb_z80.vvp $(TRACES) --rtl=iverilog 200 $(TRACE_PROGS)
 	TB_VVP=$(RZ80_BUILD)/tb_z80.vvp $(TRACES) --rtl=iverilog 200 $(PIN_SCENARIOS)
 .PHONY: rz80-traces
@@ -289,16 +289,18 @@ rz80-basic: $(RZ80_BUILD)/obj_dir_basic/sim_basic ## NASCOM BASIC 4.7 and Tiny B
 	tests/rz80/basic/run_basic_tests.sh rtl
 .PHONY: rz80-basic
 
-# The pins against the NMOS Z80's AC characteristics (Zilog PS0178, Z8400, timing/),
-# measured by OpenSTA on the latest run at every process corner, the pads as RZ80
-# simulated them at transistor level (spice/pads/), at each grade's own clock:
-# GRADES="4 6 8" (Z80A, Z80B, Z80H); every one must pass
+# The pins against the NMOS Z80's AC characteristics (Zilog PS0178, Z8400, timing/;
+# the original Z80's 2.5 MHz from Zilog's 1983 specification), measured by OpenSTA
+# on the latest run at every process corner, the pads as RZ80 simulated them at
+# transistor level (spice/pads/): POINTS, each grade at its own clock (Z80A, Z80B,
+# Z80H, Z80) and the clocks of the TRS-80 Model I, the ZX80 / ZX81 and the ZX
+# Spectrum 48K and 128K on the grade their Z80 was; every one must pass. OpenSTA
+# measures once per clock edge and corner, in parallel, for every point
 STA    ?= $(shell command -v sta || command -v openroad)
-GRADES ?= 4 6 8
-pin-timing: ## The pins against the NMOS Z80's datasheet at 4, 6 and 8 MHz, every corner (OpenSTA)
-	@run=$$(ls -td librelane/runs/RUN_* | head -1); fail=; \
-	for g in $(GRADES); do STA="$(STA)" $(PYTHON) timing/pin_timing.py $$run --grade $$g || fail="$$fail $$g"; done; \
-	if [ -n "$$fail" ]; then echo "pin timing FAILS at grade(s)$$fail MHz"; exit 1; fi
+POINTS ?= 4,6,8,2.5,trs80,zx81,spectrum,spectrum128
+pin-timing: ## The pins against the NMOS Z80's datasheet at 2.5-8 MHz and old machines' clocks, every corner (OpenSTA)
+	@run=$$(ls -td librelane/runs/RUN_* | head -1); \
+	STA="$(STA)" $(PYTHON) timing/pin_timing.py $$run --grade $(POINTS)
 .PHONY: pin-timing
 
 # Every pin's edge, load and fanout within its limits at every corner, as the

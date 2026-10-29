@@ -124,8 +124,8 @@ PIN_TIMING = [
      '          f"set_input_transition {edge} [get_ports {CLK_PORT}]",'),
     ('        self.cell = {inst: cell for cell, inst in re.findall(r"^\\s*(\\w+)\\s+(pad_\\w+)\\s*\\(", nl, re.M)}',
      '        self.cell = {inst: cell for cell, inst in re.findall(r"^\\s*(\\w+)\\s+\\\\?(\\S*pad)\\s*\\(", nl, re.M)}'),
-    ('        cell = self.cell.get("pad_" + port.replace("[", "").replace("]", ""))',
-     '        cell = self.cell.get(pad_instance(port))'),
+    ('        return self.cell.get("pad_" + port.replace("[", "").replace("]", ""))',
+     '        return self.cell.get(pad_instance(port))'),
     # ws3: the flow's SDC (make sdc): one clock at the CLK pin at the flow's
     # period, the pins at the strictest of the 4/6/8 MHz grades
     (r'''def write_sdc(con, path, load, edge):
@@ -363,8 +363,14 @@ def write_sdc(path, load, edge, period, grades, hold_margin=0.0):
 '''),
     (r'''    ap.add_argument("--write-sdc", metavar="FILE", help="write the flow's SDC for this grade instead (RUN is ignored)")
     a = ap.parse_args()
+    points = ALL_POINTS if a.all else [g for g in a.grade.split(",") if g]
+    bad = [g for g in points if g not in POINTS]
+    if bad or not points:
+        ap.error(f"--grade: unknown point(s) {', '.join(bad) or '(none)'}; one of {', '.join(ALL_POINTS)}")
     if a.write_sdc:
-        con = Contract(a.grade, a.load)
+        if len(points) != 1 or POINTS[points[0]][1]:
+            ap.error("--write-sdc takes one grade: 2.5, 4, 6 or 8")
+        con = Contract(points[0], a.load)
         write_sdc(con, a.write_sdc, a.load, a.edge if a.edge is not None else con.clk["tr"])
         return 0
 ''',
@@ -380,6 +386,10 @@ def write_sdc(path, load, edge, period, grades, hold_margin=0.0):
         write_sdc(a.write_sdc, a.load, a.edge if a.edge is not None else Contract(grades[0], a.load).clk["tr"],
                   a.period, grades, a.hold_margin)
         return 0
+    points = ALL_POINTS if a.all else [g for g in a.grade.split(",") if g]
+    bad = [g for g in points if g not in POINTS]
+    if bad or not points:
+        ap.error(f"--grade: unknown point(s) {', '.join(bad) or '(none)'}; one of {', '.join(ALL_POINTS)}")
 '''),
 ]
 
@@ -478,6 +488,8 @@ FILES = [("main", "rtl/" + f, "src/rz80/" + f, []) for f in RTL] + [
     ("asic", "asic/summary.py",                 "tests/rz80/scripts/summary.py", []),
     # the NMOS Z80's AC characteristics (Zilog PS0178), for the pin timing check
     ("main", "asic/timing/z8400_nmos.json",     "timing/z8400_nmos.json", []),
+    # ... and the original Z80's 2.5 MHz column (Zilog's 1983 Z8400 specification)
+    ("main", "asic/timing/z8400_nmos_1983.json", "timing/z8400_nmos_1983.json", []),
     ("main", "asic/timing/pin_timing.py",       "timing/pin_timing.py", PIN_TIMING),
     # the pads simulated at transistor level: Liberty tables to the datasheet's
     # 100 pF and its measuring levels (RZ80's asic/spice/pads.py)
