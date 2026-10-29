@@ -5,7 +5,7 @@ submodule, [https://github.com/rejunity/z80-from-schematics](https://github.com/
 
 | | commit |
 |---|---|
-| main (the submodule) | [`049c4ca`](https://github.com/rejunity/z80-from-schematics/commit/049c4caa707e953762e52522d3a9c2af279e2e41) (2026-10-29 Merge low-clock: the old machines' clocks, in pin timing and in pin scenarios) |
+| main (the submodule) | [`e37c7a8`](https://github.com/rejunity/z80-from-schematics/commit/e37c7a80d746a345a35914296c469391e31d3d96) (2026-10-29 Merge pin-grades-6-8: gate the chips' pin timing at 6 and 8 MHz) |
 | asic-gf180mcu (the chip flows' glue) | [`c88cc6b`](https://github.com/rejunity/z80-from-schematics/commit/c88cc6bcee12d43ca3031d0ff86c374c7ee992f2) |
 
 | ws3 | RZ80 | from | |
