@@ -444,6 +444,30 @@ CHIP_SPICE = [
      "{FONT}>ws3 chip_top (RZ80), GF180 layout extracted to transistors (Magic), "),
     ('    title = f"z80_chip at transistor level (GF180 {corner}): power-up, RESET, the program at 4 MHz"',
      '    title = f"RZ80, ws3 chip_top at transistor level (GF180 {corner}): power-up, RESET, the program at 4 MHz"'),
+    # the supply's ramp (0 -> VDD in 20 ns, every node starting at 0 V) gets
+    # corners every 0.25 ns as the clock's edges do: from the 1 ps first step
+    # ngspice doubles its steps to 1.3 ns by 2.6 ns, where the pads' ESD diodes
+    # begin to conduct, and on the chip of 90bfb9d no step from there would
+    # converge (tt and ff: "Timestep too small; time = 2.62724e-09 ... trouble
+    # with diode_pd2nw_06v0 ... green_esd_cdm"), down to 1e-20 s
+    ('    brk = [a for a, _ in seen([(0, 0)] + [(b, 0) for b in clock_breaks(corner, edges, vdd)])][1:]\n',
+     '    # ws3 (scripts/sync_rz80.py): corners every 0.25 ns through the supply\'s 20 ns ramp too\n'
+     '    ramp = {round(0.25 * k, 3) for k in range(1, 81)}\n'
+     '    brk = sorted(ramp | {round(b, 3) for b in clock_breaks(corner, edges, vdd)})\n'
+     '    brk = [a for a, _ in seen([(0, 0)] + [(b, 0) for b in brk])][1:]\n'),
+    # an aborted transient ("Timestep too small") still writes the points it
+    # reached and, with wrnodev, its state there: the window has to fail on
+    # it, not hand the next window a state from the wrong time
+    ('    if not os.path.exists(dat):\n'
+     '        sys.exit(f"chip: ngspice failed ({log})")\n',
+     '    if not os.path.exists(dat):\n'
+     '        sys.exit(f"chip: ngspice failed ({log})")\n'
+     '    # ws3 (scripts/sync_rz80.py): an aborted transient still writes its points and state\n'
+     '    rows = [r for r in open(dat).read().splitlines()[1:] if r.strip()]\n'
+     '    reached = float(rows[-1].split()[0]) * 1e9 if rows else 0.0\n'
+     '    if "simulation(s) aborted" in p.stdout + p.stderr or reached < tstop - t_from - 0.01:\n'
+     '        why = [l for l in (p.stdout + p.stderr).splitlines() if "Timestep too small" in l or "aborted" in l]\n'
+     '        sys.exit(f"chip: ngspice stopped at {reached + t_from:.3f} ns of {tstop:.0f} ({log}): " + " / ".join(why))\n'),
 ]
 
 PADS_SPICE = [

@@ -307,7 +307,10 @@ def deck(work, corner, edges, threads, tstop, t_from=0.0):
     L.append(f"V_rst {node('RESET_n')} 0 {pwl([(0, 0)] + ramp(trst, 0, vdd))}")
     for p in ("WAIT_n", "INT_n", "NMI_n", "BUSRQ_n"):
         L.append(f"V_{p.lower()} {node(p)} 0 {pwl([(0, 0), (20, vdd)])}")
-    brk = [a for a, _ in seen([(0, 0)] + [(b, 0) for b in clock_breaks(corner, edges, vdd)])][1:]
+    # ws3 (scripts/sync_rz80.py): corners every 0.25 ns through the supply's 20 ns ramp too
+    ramp = {round(0.25 * k, 3) for k in range(1, 81)}
+    brk = sorted(ramp | {round(b, 3) for b in clock_breaks(corner, edges, vdd)})
+    brk = [a for a, _ in seen([(0, 0)] + [(b, 0) for b in brk])][1:]
     L.append("V_brk brk 0 PWL(0 0")
     for k in range(0, len(brk), 16):
         L.append("+ " + " ".join(f"{b:.3f}n 0" for b in brk[k:k + 16]))
@@ -366,6 +369,12 @@ def simulate(work, corner, edges, threads, segment=None):
     dat = os.path.join(d, "chip.dat") if not segment else segment_file(work, corner, t_from)
     if not os.path.exists(dat):
         sys.exit(f"chip: ngspice failed ({log})")
+    # ws3 (scripts/sync_rz80.py): an aborted transient still writes its points and state
+    rows = [r for r in open(dat).read().splitlines()[1:] if r.strip()]
+    reached = float(rows[-1].split()[0]) * 1e9 if rows else 0.0
+    if "simulation(s) aborted" in p.stdout + p.stderr or reached < tstop - t_from - 0.01:
+        why = [l for l in (p.stdout + p.stderr).splitlines() if "Timestep too small" in l or "aborted" in l]
+        sys.exit(f"chip: ngspice stopped at {reached + t_from:.3f} ns of {tstop:.0f} ({log}): " + " / ".join(why))
     if t_from > 0:  # back to the run's time
         lines = open(dat).read().splitlines()
         out = [lines[0]] + [" ".join([f"{float(r.split()[0]) + t_from * 1e-9:.9e}"] + r.split()[1:])

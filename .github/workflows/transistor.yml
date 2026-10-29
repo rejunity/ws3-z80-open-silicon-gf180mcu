@@ -150,6 +150,7 @@ jobs:
             --steps simulate --segment 1/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-1
           path: work/${{ matrix.corner }}/seg
@@ -197,6 +198,7 @@ jobs:
             --steps simulate --segment 2/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-2
           path: work/${{ matrix.corner }}/seg
@@ -244,6 +246,7 @@ jobs:
             --steps simulate --segment 3/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-3
           path: work/${{ matrix.corner }}/seg
@@ -291,6 +294,7 @@ jobs:
             --steps simulate --segment 4/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-4
           path: work/${{ matrix.corner }}/seg
@@ -338,6 +342,7 @@ jobs:
             --steps simulate --segment 5/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-5
           path: work/${{ matrix.corner }}/seg
@@ -385,6 +390,7 @@ jobs:
             --steps simulate --segment 6/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-6
           path: work/${{ matrix.corner }}/seg
@@ -432,6 +438,7 @@ jobs:
             --steps simulate --segment 7/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-7
           path: work/${{ matrix.corner }}/seg
@@ -479,6 +486,7 @@ jobs:
             --steps simulate --segment 8/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-8
           path: work/${{ matrix.corner }}/seg
@@ -526,6 +534,7 @@ jobs:
             --steps simulate --segment 9/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-9
           path: work/${{ matrix.corner }}/seg
@@ -573,6 +582,7 @@ jobs:
             --steps simulate --segment 10/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-10
           path: work/${{ matrix.corner }}/seg
@@ -620,6 +630,7 @@ jobs:
             --steps simulate --segment 11/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-11
           path: work/${{ matrix.corner }}/seg
@@ -667,6 +678,7 @@ jobs:
             --steps simulate --segment 12/12
           tail -n 40 work/${{ matrix.corner }}/seg/*.log | grep -E "Total analysis|iterations|timepoints" || true
       - uses: actions/upload-artifact@v7
+        if: always()        # a failed window's logs too
         with:
           name: transistor-${{ matrix.corner }}-12
           path: work/${{ matrix.corner }}/seg
