@@ -126,27 +126,29 @@ set_output_delay -add_delay -clock CLK -clock_fall -rise -min 0 [get_ports {bidi
 # inputs: valid S before the sampling edge, held H after it, at the levels:
 # max T - S, min H, each + (level -> 50 %) + (the input pad at the grade's
 # edge - at this STA's) - (the CLK pad likewise), the strictest grade and corner
+# and min H - 5 ns: every sampled input held 5 ns more than the
+# datasheet asks, a design margin (its own hold is the very edge, 0 ns)
 set_input_delay -add_delay -clock CLK -rise -max 22.077 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P15 TsD(Cr) = 30 (6 MHz)
-set_input_delay -add_delay -clock CLK -rise -min 3.021 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P16 ThD(RDr) = 0 (8 MHz)
+set_input_delay -add_delay -clock CLK -rise -min -1.979 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P16 ThD(RDr) = 0 (8 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -fall -max 16.979 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P15 TsD(Cr) = 30 (8 MHz)
-set_input_delay -add_delay -clock CLK -fall -min -1.278 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P16 ThD(RDr) = 0 (8 MHz)
+set_input_delay -add_delay -clock CLK -fall -min -6.278 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P16 ThD(RDr) = 0 (8 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -clock_fall -rise -max 21.278 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P25 TsD(Cf) = 30 (8 MHz)
-set_input_delay -add_delay -clock CLK -clock_fall -rise -min 1.848 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P16 ThD(RDr) = 0 (6 MHz)
+set_input_delay -add_delay -clock CLK -clock_fall -rise -min -3.152 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P16 ThD(RDr) = 0 (6 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -clock_fall -fall -max 16.979 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P25 TsD(Cf) = 30 (8 MHz)
-set_input_delay -add_delay -clock CLK -clock_fall -fall -min -3.224 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P16 ThD(RDr) = 0 (6 MHz)
+set_input_delay -add_delay -clock CLK -clock_fall -fall -min -8.224 [get_ports {bidir_PAD[0] bidir_PAD[1] bidir_PAD[2] bidir_PAD[3] bidir_PAD[4] bidir_PAD[5] bidir_PAD[6] bidir_PAD[7]}]   ;# P16 ThD(RDr) = 0 (6 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -clock_fall -rise -max 1.278 [get_ports {input_PAD[0]}]   ;# P17 TsWAIT(Cf) = 50 (8 MHz)
-set_input_delay -add_delay -clock CLK -clock_fall -rise -min 1.848 [get_ports {input_PAD[0]}]   ;# P18 ThWAIT(Cf) = 0 (6 MHz)
+set_input_delay -add_delay -clock CLK -clock_fall -rise -min -3.152 [get_ports {input_PAD[0]}]   ;# P18 ThWAIT(Cf) = 0 (6 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -clock_fall -fall -max -3.021 [get_ports {input_PAD[0]}]   ;# P17 TsWAIT(Cf) = 50 (8 MHz)
-set_input_delay -add_delay -clock CLK -clock_fall -fall -min -3.224 [get_ports {input_PAD[0]}]   ;# P18 ThWAIT(Cf) = 0 (6 MHz)
+set_input_delay -add_delay -clock CLK -clock_fall -fall -min -8.224 [get_ports {input_PAD[0]}]   ;# P18 ThWAIT(Cf) = 0 (6 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -rise -max 11.278 [get_ports {input_PAD[3]}]   ;# P38 TsBUSREQ(Cr) = 40 (8 MHz)
-set_input_delay -add_delay -clock CLK -rise -min 3.021 [get_ports {input_PAD[3]}]   ;# P39 ThBUSREQ(Cr) = 0 (8 MHz)
+set_input_delay -add_delay -clock CLK -rise -min -1.979 [get_ports {input_PAD[3]}]   ;# P39 ThBUSREQ(Cr) = 0 (8 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -fall -max 6.979 [get_ports {input_PAD[3]}]   ;# P38 TsBUSREQ(Cr) = 40 (8 MHz)
-set_input_delay -add_delay -clock CLK -fall -min -1.278 [get_ports {input_PAD[3]}]   ;# P39 ThBUSREQ(Cr) = 0 (8 MHz)
+set_input_delay -add_delay -clock CLK -fall -min -6.278 [get_ports {input_PAD[3]}]   ;# P39 ThBUSREQ(Cr) = 0 (8 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -rise -max 6.278 [get_ports {rst_n_PAD}]   ;# P46 TsRESET(Cr) = 45 (8 MHz)
-set_input_delay -add_delay -clock CLK -rise -min 3.021 [get_ports {rst_n_PAD}]   ;# P47 ThRESET(Cr) = 0 (8 MHz)
+set_input_delay -add_delay -clock CLK -rise -min -1.979 [get_ports {rst_n_PAD}]   ;# P47 ThRESET(Cr) = 0 (8 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -fall -max 1.979 [get_ports {rst_n_PAD}]   ;# P46 TsRESET(Cr) = 45 (8 MHz)
-set_input_delay -add_delay -clock CLK -fall -min -1.278 [get_ports {rst_n_PAD}]   ;# P47 ThRESET(Cr) = 0 (8 MHz)
+set_input_delay -add_delay -clock CLK -fall -min -6.278 [get_ports {rst_n_PAD}]   ;# P47 ThRESET(Cr) = 0 (8 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -rise -max -3.722 [get_ports {input_PAD[1]}]   ;# P48 TsINT(Cr) = 55 (8 MHz)
-set_input_delay -add_delay -clock CLK -rise -min 3.021 [get_ports {input_PAD[1]}]   ;# P49 ThINT(Cr) = 0 (8 MHz)
+set_input_delay -add_delay -clock CLK -rise -min -1.979 [get_ports {input_PAD[1]}]   ;# P49 ThINT(Cr) = 0 (8 MHz) - 5 margin
 set_input_delay -add_delay -clock CLK -fall -max -8.021 [get_ports {input_PAD[1]}]   ;# P48 TsINT(Cr) = 55 (8 MHz)
-set_input_delay -add_delay -clock CLK -fall -min -1.278 [get_ports {input_PAD[1]}]   ;# P49 ThINT(Cr) = 0 (8 MHz)
+set_input_delay -add_delay -clock CLK -fall -min -6.278 [get_ports {input_PAD[1]}]   ;# P49 ThINT(Cr) = 0 (8 MHz) - 5 margin

@@ -233,12 +233,13 @@ class SimPads:
         return (half - lv) / slope * (1 if trans == "rise" else -1)
 
 
-def write_sdc(path, load, edge, period, grades):
+def write_sdc(path, load, edge, period, grades, hold_margin=0.0):
     """ws3's flow SDC: one clock, CLK, at the CLK pin at the flow's `period`
     (the core's goal); every pin parameter of SDC_OUT / SDC_IN at the strictest
     of `grades` -- each at its own AC test edge, the datasheet's levels and
     every simulated corner -- in absolute ns from the CLK pin's edges, for an
-    STA with `edge` ns edges"""
+    STA with `edge` ns edges; every sampled input's hold `hold_margin` ns past
+    the datasheet's"""
     cons = {g: Contract(g, load) for g in grades}
     sp = SimPads(load)
     E, T = edge, period
@@ -338,6 +339,9 @@ def write_sdc(path, load, edge, period, grades):
     L += ["# inputs: valid S before the sampling edge, held H after it, at the levels:",
           "# max T - S, min H, each + (level -> 50 %) + (the input pad at the grade's",
           "# edge - at this STA's) - (the CLK pad likewise), the strictest grade and corner"]
+    if hold_margin:
+        L += [f"# and min H - {hold_margin:g} ns: every sampled input held {hold_margin:g} ns more than the",
+              "# datasheet asks, a design margin (its own hold is the very edge, 0 ns)"]
     for ports, ref, sp_, hp in SDC_IN:
         cf = " -clock_fall" if ref == "fall" else ""
         cell = PAD_CELL[pins(ports)[0]]
@@ -347,10 +351,12 @@ def write_sdc(path, load, edge, period, grades):
                           for g, k in cases)
             mn, gh = min((cons[g].limit(hp) + sp.level(k, "hold", t, cons[g].clk["tr"]) + di(k, g) - dc(k, ref, g), g)
                          for g, k in cases)
+            mn -= hold_margin   # the input may change this much sooner: a harder hold
             L.append(f"set_input_delay -add_delay -clock CLK{cf} -{t} -max {num(mx)} "
                      f"[get_ports {names(ports)}]   ;# P{sp_} {sym(sp_)} = {cons[gs_].limit(sp_):g} ({gs_} MHz)")
             L.append(f"set_input_delay -add_delay -clock CLK{cf} -{t} -min {num(mn)} "
-                     f"[get_ports {names(ports)}]   ;# P{hp} {sym(hp)} = {cons[gh].limit(hp):g} ({gh} MHz)")
+                     f"[get_ports {names(ports)}]   ;# P{hp} {sym(hp)} = {cons[gh].limit(hp):g} ({gh} MHz)"
+                     + (f" - {hold_margin:g} margin" if hold_margin else ""))
     open(path, "w").write("\n".join(L) + "\n")
 
 
@@ -364,13 +370,15 @@ def write_sdc(path, load, edge, period, grades):
 ''',
      r'''    ap.add_argument("--write-sdc", metavar="FILE", help="write the flow's SDC instead (RUN is ignored): one "
                     "clock at --period, the pins at the strictest of --grades")
+    ap.add_argument("--hold-margin", type=float, default=0.0, help="--write-sdc: every sampled input held this "
+                    "many ns past the datasheet's hold (a design margin)")
     ap.add_argument("--period", type=float, default=50.0, help="--write-sdc: the clock, ns (the core's goal)")
     ap.add_argument("--grades", default="4,6,8", help="--write-sdc: the grades whose strictest limits the pins get")
     a = ap.parse_args()
     if a.write_sdc:
         grades = [g for g in a.grades.split(",") if g]
         write_sdc(a.write_sdc, a.load, a.edge if a.edge is not None else Contract(grades[0], a.load).clk["tr"],
-                  a.period, grades)
+                  a.period, grades, a.hold_margin)
         return 0
 '''),
 ]

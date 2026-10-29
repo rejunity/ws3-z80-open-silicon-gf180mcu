@@ -317,7 +317,11 @@ check-drv: ## No max slew, max capacitance or max fanout violation at any corner
 # sdc-check` (CI) fails on a stale file
 SDC        := timing/chip_top_nmos.sdc
 SDC_PERIOD := $(shell sed -n 's/^CLOCK_PERIOD: *\([0-9.]*\).*/\1/p' librelane/config.yaml)
-SDC_ARGS    = --period $(SDC_PERIOD) --grades 4,6,8 --edge 7.5 --load 100
+# every sampled input held 5 ns past the datasheet's hold: WAIT's (P18 ThWAIT(Cf)
+# = 0, sampled on CLK's fall) came out +1.7 ns at ff with none; the other
+# inputs had some 5 ns
+HOLD_MARGIN := 5
+SDC_ARGS    = --period $(SDC_PERIOD) --grades 4,6,8 --edge 7.5 --load 100 --hold-margin $(HOLD_MARGIN)
 sdc: ## Write the flow's SDC: the NMOS Z80's datasheet on the pins, one clock
 	$(PYTHON) timing/pin_timing.py --write-sdc $(SDC) $(SDC_ARGS)
 .PHONY: sdc
