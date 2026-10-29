@@ -5,7 +5,7 @@ submodule, [https://github.com/rejunity/z80-from-schematics](https://github.com/
 
 | | commit |
 |---|---|
-| main (the submodule) | [`a5ec809`](https://github.com/rejunity/z80-from-schematics/commit/a5ec8096686ba82ff362c09379785f9c75f4bfe3) (2026-10-28 Merge pad-power: the pads' limits and power from transistor level) |
+| main (the submodule) | [`049c4ca`](https://github.com/rejunity/z80-from-schematics/commit/049c4caa707e953762e52522d3a9c2af279e2e41) (2026-10-29 Merge low-clock: the old machines' clocks, in pin timing and in pin scenarios) |
 | asic-gf180mcu (the chip flows' glue) | [`c88cc6b`](https://github.com/rejunity/z80-from-schematics/commit/c88cc6bcee12d43ca3031d0ff86c374c7ee992f2) |
 
 | ws3 | RZ80 | from | |
@@ -39,6 +39,7 @@ submodule, [https://github.com/rejunity/z80-from-schematics](https://github.com/
 | `tests/rz80/scripts/sigrok_z80_decode.py` | `scripts/sigrok_z80_decode.py` | main | copied |
 | `tests/rz80/scripts/summary.py` | `asic/summary.py` | asic-gf180mcu | copied |
 | `timing/z8400_nmos.json` | `asic/timing/z8400_nmos.json` | main | copied |
+| `timing/z8400_nmos_1983.json` | `asic/timing/z8400_nmos_1983.json` | main | copied |
 | `timing/pin_timing.py` | `asic/timing/pin_timing.py` | main | patched |
 | `spice/pads/gf180mcu/pads.json` | `asic/spice/pads/gf180mcu/pads.json` | main | copied |
 | `spice/pads/gf180mcu/gf180mcu_fd_io__tt_025C_5v00.lib` | `asic/spice/pads/gf180mcu/gf180mcu_fd_io__tt_025C_5v00.lib` | main | copied |

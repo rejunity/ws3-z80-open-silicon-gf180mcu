@@ -75,7 +75,7 @@ and prints its sign-off in the run's summary):
 | Fastest clock | typical 34 MHz · slow 21 MHz (max wires 20.9 MHz) · fast 45 MHz (measured at `6603ef1`, whose setup slack is within 0.09 ns of this run's) |
 | Sign-off | route DRC 0, Magic DRC 0, KLayout DRC 0, LVS 0, antenna 0, XOR 0; setup and hold at all 9 corners |
 | Edges, loads, fanout | every pin within its limits at all 9 corners: 0 max slew, 0 max capacitance, 0 max fanout violations (`make check-drv`) |
-| NMOS Z80 pin timing | PASS at 4, 6 and 8 MHz at the typical, slow and fast corners: all 47 parameters at each grade's own clock (`make pin-timing`) |
+| NMOS Z80 pin timing | PASS at 4, 6 and 8 MHz at the typical, slow and fast corners: all 47 parameters at each grade's own clock; PASS as well for the original Z80 at 2.5 MHz and at the clocks of the TRS-80 Model I (1.774 MHz), the ZX80 / ZX81 (3.25 MHz) and the ZX Spectrum 48K / 128K (3.5 / 3.5469 MHz) (`make pin-timing`) |
 
 The flow signs off setup and hold at every corner: typical, slow (125 °C,
 4.5 V) and fast (−40 °C, 5.5 V), each with nominal, minimum and maximum
@@ -131,6 +131,16 @@ keeps 6.7 ns or more at every grade and corner (WAIT 6.7 ns at 6 MHz, before
 the margin 1.7 ns; BUSRQ and RESET 6.7 ns at 8 MHz, before 2.3 and 2.6 ns),
 and every input setup 22 ns or more (WAIT at 8 MHz, needing 27.7 ns of its
 50); the I/O write's data-to-WR separation keeps 3.3 ns at 8 MHz.
+
+At the older clocks, the same layout (`make pin-timing`): the original Z80's
+2.5 MHz table (Zilog's Z8400 specification of September 1983, its outputs
+timed at 2.0 / 0.8 V) and the TRS-80 Model I's 1.774 MHz on it, every output
+31 ns or more inside its limit and every input hold 5.8 ns or more (WAIT, the
+20 ns edges); the ZX80 / ZX81's 3.25 MHz and the ZX Spectrum 48K's 3.5 and
+128K's 3.5469 MHz on the 4 MHz table, as at 4 MHz itself (WAIT's hold 7.0
+ns, outputs 23 ns). The Spectrum's ULA holds CLK high for up to six more
+T-states (1.8 us); RZ80 is static, and the cycle-level side of it is in RZ80's
+pin scenarios (below).
 
 Against the run at `8981221` (40 ns, the template's constraints with a
 hand-written WAIT hold, setup signed off at the typical corner only, which
@@ -190,8 +200,11 @@ come from (the die through perfectz80, or real Z80s) and where it runs:
   against the die, every instruction of a real Z80's logic-analyser
   capture (a KC 85/4's U880), and Cringle's prelim;
 - **iverilog, against perfectz80's recorded traces, half-cycle by
-  half-cycle:** the 14 trace programs and the 15 pin scenarios, on the RTL
-  and on the chip's netlist through its pads; the pin sweep, every opcode
+  half-cycle:** the 14 trace programs and the 19 pin scenarios -- four of
+  them inside a ZX Spectrum 48K, its ULA holding the clock high through
+  contended accesses, or a ZX80 / ZX81, its display file's forced NOPs, INT
+  on A6, and the ZX81's NMI and WAIT generators -- on the RTL and on the
+  chip's netlist through its pads; the pin sweep, every opcode
   and pin event (51,126 cases; RESET at every half-cycle of every opcode
   nightly);
 - **iverilog on the RTL:** FUSE's tests with the die's values, the X / Y
@@ -224,7 +237,7 @@ check out with the submodule, and run `nix-shell` here.
     make sim-system          # whole programs on the RTL
     make librelane           # RTL to GDS (final/ holds the views)
     make sim-gl sim-system-gl   # the same on the gate-level netlist
-    make pin-timing          # the pins against the NMOS datasheet, 4/6/8 MHz, every corner
+    make pin-timing          # the pins against the NMOS datasheet, 2.5-8 MHz and old machines' clocks, every corner
     make check-drv           # every pin's edge, load and fanout within its limits, every corner
     make sdc                 # the flow's SDC, from timing/ (make sdc-check: up to date)
     make precheck            # wafer.space's precheck of final/gds/chip_top.gds
