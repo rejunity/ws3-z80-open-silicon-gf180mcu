@@ -5,7 +5,7 @@ submodule, [https://github.com/rejunity/z80-from-schematics](https://github.com/
 
 | | commit |
 |---|---|
-| main (the submodule) | [`e37c7a8`](https://github.com/rejunity/z80-from-schematics/commit/e37c7a80d746a345a35914296c469391e31d3d96) (2026-10-29 Merge pin-grades-6-8: gate the chips' pin timing at 6 and 8 MHz) |
+| main (the submodule) | [`6b1ffce`](https://github.com/rejunity/z80-from-schematics/commit/6b1ffceab57561881e9cae429182dc3d4fc28038) (2026-11-02 Merge chip-sim-abort: a transistor window fails when ngspice stops early) |
 | asic-gf180mcu (the chip flows' glue) | [`c88cc6b`](https://github.com/rejunity/z80-from-schematics/commit/c88cc6bcee12d43ca3031d0ff86c374c7ee992f2) |
 
 | ws3 | RZ80 | from | |
@@ -46,6 +46,7 @@ submodule, [https://github.com/rejunity/z80-from-schematics](https://github.com/
 | `spice/pads/gf180mcu/gf180mcu_fd_io__ss_125C_4v50.lib` | `asic/spice/pads/gf180mcu/gf180mcu_fd_io__ss_125C_4v50.lib` | main | copied |
 | `spice/pads/gf180mcu/gf180mcu_fd_io__ff_n40C_5v50.lib` | `asic/spice/pads/gf180mcu/gf180mcu_fd_io__ff_n40C_5v50.lib` | main | copied |
 | `spice/chip.py` | `asic/spice/chip.py` | main | patched |
+| `spice/test_chip.py` | `asic/spice/test_chip.py` | main | patched |
 | `spice/pads.py` | `asic/spice/pads.py` | main | patched |
 | `spice/svgplot.py` | `asic/spice/svgplot.py` | main | copied |
 | `spice/tb_chip_ref.v` | `asic/spice/tb_chip_ref.v` | main | copied |
