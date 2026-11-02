@@ -190,6 +190,10 @@ sync-check: ## RZ80's files in ws3 are what scripts/sync_rz80.py writes from rz8
 	$(PYTHON) scripts/sync_rz80.py --check
 .PHONY: sync-check
 
+chip-sim-check: ## The transistor run's harness: an aborted or short ngspice window fails (stand-in ngspice, iverilog)
+	$(PYTHON) spice/test_chip.py
+.PHONY: chip-sim-check
+
 rz80-elab: ## RZ80's RTL elaborates (iverilog)
 	$(IVERILOG) -g2001 -Isrc/rz80 -t null $(RZ80_SRC) && echo "RTL elaboration OK"
 .PHONY: rz80-elab

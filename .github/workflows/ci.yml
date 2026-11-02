@@ -72,6 +72,10 @@ jobs:
         run: make rz80-elab rz80-bus rz80-fuse rz80-xyflags
       - name: Trace programs and pin scenarios vs perfectz80's recorded traces
         run: make rz80-traces
+      # spice/chip.py's windows (transistor.yml): a window ngspice aborted,
+      # or whose data stops before its end, fails (a stand-in for ngspice)
+      - name: Transistor-level harness (spice/chip.py simulate)
+        run: make chip-sim-check
 
   sweep:
     name: Pin sweep against perfectz80 (iverilog) ${{ matrix.shard }}/4
