@@ -17,7 +17,8 @@ runs:
       shell: ${{ inputs.shell }}
       run: |
         echo "#################################################################"
-        outPath=$(nix build\
+        # a download cache.nixos.org breaks off: again, then built (scripts/nix_retry.sh)
+        outPath=$("$GITHUB_WORKSPACE/scripts/nix_retry.sh" nix build\
           --print-out-paths\
           --no-link\
           --accept-flake-config\
