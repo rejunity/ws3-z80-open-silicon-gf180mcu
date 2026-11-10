@@ -60,7 +60,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: pads.py --check (every measurement within pads.py's tolerances)
         run: python3 spice/pads.py gf180mcu --pdk-root "$PWD/gf180mcu/ciel" --jobs 4 --out build/pads-check --check spice/pads/gf180mcu/pads.json
 
@@ -90,7 +92,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' magic)
       - name: The chip's GDS, from main's latest successful CI run
         id: gds
         env:
@@ -139,7 +143,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -182,7 +188,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -230,7 +238,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -278,7 +288,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -326,7 +338,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -374,7 +388,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -422,7 +438,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -470,7 +488,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -518,7 +538,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -566,7 +588,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -614,7 +638,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -662,7 +688,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -710,7 +738,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -758,7 +788,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -806,7 +838,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -854,7 +888,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -902,7 +938,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -950,7 +988,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -998,7 +1038,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -1046,7 +1088,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -1094,7 +1138,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -1142,7 +1188,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -1190,7 +1238,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
@@ -1238,7 +1288,9 @@ jobs:
       - name: Fetch the PDK (LibreLane's ciel)
         run: |
           [ -d gf180mcu/$PDK ] ||
-            nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+            scripts/nix_retry.sh nix run $LIBRELANE#python3.pkgs.ciel -- enable $PDK_COMMIT --pdk-root gf180mcu --pdk $PDK --include-libraries all
+      - name: The simulators, pinned (nix; a broken download again, then built)
+        run: scripts/nix_retry.sh nix build --no-link $(python3 -c 'import sys; sys.path.insert(0, "spice"); import pads; print(*(pads.TOOLS[t] for t in sys.argv[1:]))' ngspice)
       - name: The netlist and the RTL's reference
         uses: actions/download-artifact@v8
         with:
