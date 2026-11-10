@@ -194,6 +194,10 @@ chip-sim-check: ## The transistor run's harness: an aborted or short ngspice win
 	$(PYTHON) spice/test_chip.py
 .PHONY: chip-sim-check
 
+nix-retry-check: ## scripts/nix_retry.sh: a broken cache download again, then built; other failures at once (stand-in nix)
+	$(PYTHON) scripts/test_nix_retry.py
+.PHONY: nix-retry-check
+
 rz80-elab: ## RZ80's RTL elaborates (iverilog)
 	$(IVERILOG) -g2001 -Isrc/rz80 -t null $(RZ80_SRC) && echo "RTL elaboration OK"
 .PHONY: rz80-elab

@@ -76,6 +76,9 @@ jobs:
       # or whose data stops before its end, fails (a stand-in for ngspice)
       - name: Transistor-level harness (spice/chip.py simulate)
         run: make chip-sim-check
+      # a download from Nix's cache that breaks off is tried again, then built
+      - name: Nix download retries (scripts/nix_retry.sh)
+        run: make nix-retry-check
 
   sweep:
     name: Pin sweep against perfectz80 (iverilog) ${{ matrix.shard }}/4
